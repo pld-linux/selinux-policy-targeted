@@ -2,18 +2,19 @@
 Summary:	SELinux %{type} policy configuration
 Summary(pl):	Konfiguracja polityki %{type} SELinuksa
 Name:		selinux-policy-%{type}
-Version:	1.18
+Version:	1.19.1
 Release:	0.1
 License:	GPL
 Group:		Base
-Source0:	http://www.nsa.gov/selinux/archives/policy-%{version}.tgz
+# Source0:	http://www.nsa.gov/selinux/archives/policy-%{version}.tgz
+Source0:	policy-%{version}.tgz
 # Source0-md5:	f57f96e0b64012c89045dff3ac9f0d54
-#Source1:	%{name}-booleans
-#Patch0:		policy-%{type}.patch
-#Patch1:		policy-20040915.patch
-BuildRequires:	checkpolicy >= 1.16.3
+Source1:	booleans
+Patch0:		policy-%{type}.patch
+Patch1:		policy-20041109.patch
+BuildRequires:	checkpolicy >= 1.18
 BuildRequires:	m4
-BuildRequires:	policycoreutils >= 1.17.2-1
+BuildRequires:	policycoreutils >= 1.18
 BuildRequires:	python
 Obsoletes:	policy
 BuildArch:	noarch
@@ -75,9 +76,8 @@ polityki. Zawiera policy.conf oraz wszystkie Makefile, makra i pliki
 
 %prep
 %setup -q -n policy-%{version}
-# Change strict to targeted
-#%%patch -p1
-#%%patch1 -p1
+%patch0 -p1
+%patch1 -p1
 
 %build
 mv domains/misc/*.te domains/misc/unused
@@ -90,7 +90,6 @@ rm -rf domains/program/unused
 rm -rf domains/misc/used
 cp -R %{type}/* .
 echo "define(\`targeted_policy')" > tunables/tunable.tun
-echo "define(\`allow_ypbind')" >> tunables/tunable.tun
 echo "define(\`nscd_all_connect')" >> tunables/tunable.tun
 %{__make} policy
 
@@ -134,11 +133,11 @@ SELINUXTYPE=targeted " > /etc/selinux/config
 	fi
 fi
 ln -sf /etc/selinux/config /etc/sysconfig/selinux
-restorecon /etc/selinux/config
+restorecon /etc/selinux/config 2> /dev/null
 
 if [ -x /usr/bin/selinuxenabled ] && /usr/bin/selinuxenabled && [ -e /selinux/policyvers ]; then
 	. /etc/selinux/config
-	if [ "${SELINUXTYPE}" = "%{type}" ]; then
+	if [ "${SELINUXTYPE}" = "%{type}" ] && [ ! -e /etc/selinux/%{type}/src/policy/Makefile ]; then
 		/usr/sbin/load_policy /etc/selinux/%{type}/policy/policy.`cat /selinux/policyvers`
 	fi
 fi
@@ -152,7 +151,7 @@ if [ -x /usr/bin/selinuxenabled ]; then
 		. /etc/selinux/config
 		if [ "${SELINUXTYPE}" = "%{type}" ]; then
 			/usr/bin/selinuxenabled && [ -e /selinux/policyvers ] \
-				&& make -C /etc/selinux/%{type}/src/policy load
+				&& make -C /etc/selinux/%{type}/src/policy load > /dev/null 2>&1
 		fi
 	fi
 fi
@@ -171,10 +170,12 @@ exit 0
 %config(noreplace) %{_sysconfdir}/selinux/%{type}/policy/policy\.*
 %config(noreplace) %{_sysconfdir}/selinux/%{type}/contexts/files/file_contexts
 %config(noreplace) %{_sysconfdir}/selinux/%{type}/contexts/files/media
+%config(noreplace) %{_sysconfdir}/selinux/%{type}/contexts/dbus_contexts
 %config(noreplace) %{_sysconfdir}/selinux/%{type}/contexts/default_contexts
 %config(noreplace) %{_sysconfdir}/selinux/%{type}/contexts/default_type
 %config(noreplace) %{_sysconfdir}/selinux/%{type}/contexts/initrc_context
 %config(noreplace) %{_sysconfdir}/selinux/%{type}/contexts/failsafe_context
+%config(noreplace) %{_sysconfdir}/selinux/%{type}/contexts/removable_context
 %config(noreplace) %{_sysconfdir}/selinux/%{type}/contexts/userhelper_context
 %config(noreplace) %{_sysconfdir}/selinux/%{type}/contexts/users/root
 
