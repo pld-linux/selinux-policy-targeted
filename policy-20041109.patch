@@ -1,0 +1,1882 @@
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/crond.te policy-1.19.1/domains/program/crond.te
+--- nsapolicy/domains/program/crond.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/crond.te	2004-11-11 21:20:11.523767055 -0500
+@@ -23,7 +23,6 @@
+ 
+ # Type for temporary files.
+ tmp_domain(crond)
+-can_ypbind(crond_t)
+ 
+ crond_domain(system)
+ 
+@@ -114,6 +113,8 @@
+ # Use capabilities.
+ allow system_crond_t self:capability { dac_read_search chown setgid setuid fowner net_bind_service fsetid };
+ 
++allow crond_t urandom_device_t:chr_file { getattr read };
++
+ # Read the system crontabs.
+ allow system_crond_t system_cron_spool_t:file r_file_perms;
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/initrc.te policy-1.19.1/domains/program/initrc.te
+--- nsapolicy/domains/program/initrc.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/initrc.te	2004-11-11 21:20:11.524766942 -0500
+@@ -303,8 +303,8 @@
+ ')
+ 
+ # for lsof in shutdown scripts
+-allow initrc_t krb5_conf_t:file read;
+-dontaudit initrc_t krb5_conf_t:file write;
++can_kerberos(initrc_t)
++
+ #
+ # Wants to remove udev.tbl
+ #
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/login.te policy-1.19.1/domains/program/login.te
+--- nsapolicy/domains/program/login.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/login.te	2004-11-11 21:20:11.525766830 -0500
+@@ -117,8 +117,6 @@
+ allow $1_login_t mail_spool_t:file getattr;
+ allow $1_login_t mail_spool_t:lnk_file read;
+ 
+-dontaudit $1_login_t krb5_conf_t:file write;
+-allow $1_login_t krb5_conf_t:file { getattr read };
+ # Get security policy decisions.
+ can_getsecurity($1_login_t)
+ 
+@@ -127,8 +125,6 @@
+ allow $1_login_t default_context_t:dir search;
+ r_dir_file($1_login_t, selinux_config_t)
+ 
+-can_ypbind($1_login_t)
+-
+ allow $1_login_t mouse_device_t:chr_file { getattr setattr };
+ dontaudit $1_login_t init_t:fd use;
+ ')dnl end login_domain macro
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/ssh.te policy-1.19.1/domains/program/ssh.te
+--- nsapolicy/domains/program/ssh.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/ssh.te	2004-11-11 21:20:11.526766717 -0500
+@@ -69,10 +69,10 @@
+ allow $1_t urandom_device_t:chr_file { getattr read };
+ 
+ can_network($1_t)
++allow $1_t self:{ udp_socket tcp_socket } connect;
+ 
+-allow $1_t self:capability { sys_chroot sys_resource chown dac_override fowner fsetid setgid setuid sys_tty_config };
++allow $1_t self:capability { kill sys_chroot sys_resource chown dac_override fowner fsetid setgid setuid sys_tty_config };
+ allow $1_t { home_root_t home_dir_type }:dir { search getattr };
+-can_ypbind($1_t)
+ if (use_nfs_home_dirs) {
+ ifdef(`automount.te', `
+ allow $1_t autofs_t:dir { search getattr };
+@@ -213,8 +213,6 @@
+ ifdef(`automount.te', `
+ allow sshd_t autofs_t:dir search;
+ ')
+-dontaudit sshd_t krb5_conf_t:file write;
+-allow sshd_t krb5_conf_t:file { getattr read };
+ 
+ # ssh_keygen_t is the type of the ssh-keygen program when run at install time
+ # and by sysadm_t
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/syslogd.te policy-1.19.1/domains/program/syslogd.te
+--- nsapolicy/domains/program/syslogd.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/syslogd.te	2004-11-11 21:20:11.526766717 -0500
+@@ -19,9 +19,13 @@
+ daemon_domain(syslogd, `, privmem')
+ ')
+ 
++# Allow name_bind for remote logging
++type syslogd_port_t, port_type, reserved_port_type;
+ # can_network is for the UDP socket
+-can_network(syslogd_t)
++can_udp_network(syslogd_t)
+ can_ypbind(syslogd_t)
++allow syslogd_t syslogd_port_t:udp_socket name_bind;
++allow syslogd_t self:udp_socket connect;
+ 
+ r_dir_file(syslogd_t, sysfs_t)
+ 
+@@ -87,13 +91,10 @@
+ # Allow syslog to a terminal
+ allow syslogd_t tty_device_t:chr_file { getattr write ioctl append };
+ 
+-# Allow name_bind for remote logging
+-type syslogd_port_t, port_type, reserved_port_type;
+-allow syslogd_t syslogd_port_t:udp_socket name_bind;
+ #
+ # /initrd is not umounted before minilog starts
+ #
+ dontaudit syslogd_t file_t:dir search;
+ allow syslogd_t { tmpfs_t devpts_t }:dir search;
+ dontaudit syslogd_t unlabeled_t:file read;
+-dontaudit syslogd_t devpts_t:chr_file getattr;
++dontaudit syslogd_t { userpty_type devpts_t }:chr_file getattr;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/anaconda.te policy-1.19.1/domains/program/unused/anaconda.te
+--- nsapolicy/domains/program/unused/anaconda.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/anaconda.te	2004-11-11 21:20:11.527766604 -0500
+@@ -242,8 +242,7 @@
+ ifdef(`udev.te', `
+ domain_auto_trans(anaconda_t, udev_exec_t, udev_t)
+ ')
+-allow anaconda_t krb5_conf_t:file read;
+-dontaudit anaconda_t krb5_conf_t:file write;
++can_kerberos(anaconda_t)
+ 
+ ifdef(`ssh-agent.te', `
+ role system_r types sysadm_ssh_agent_t;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/apache.te policy-1.19.1/domains/program/unused/apache.te
+--- nsapolicy/domains/program/unused/apache.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/apache.te	2004-11-11 21:20:11.528766491 -0500
+@@ -133,9 +133,11 @@
+ # execute perl
+ allow httpd_t { bin_t sbin_t }:dir r_dir_perms;
+ can_exec(httpd_t, { bin_t sbin_t })
++allow httpd_t bin_t:lnk_file read;
+ 
+ can_network(httpd_t)
+ can_ypbind(httpd_t)
++allow httpd_t self:{ tcp_socket udp_socket } connect;
+ 
+ ###################
+ # Allow httpd to search users diretories
+@@ -201,6 +203,10 @@
+ if (httpd_ssi_exec) {
+ domain_auto_trans(httpd_t, shell_exec_t, httpd_sys_script_t)
+ }
++r_dir_file(httpd_t, httpd_sys_script_ro_t)
++create_dir_file(httpd_t, httpd_sys_script_rw_t)
++ra_dir_file(httpd_t, httpd_sys_script_ra_t)
++allow httpd_sys_script_t httpd_t:tcp_socket { read write };
+ 
+ ##################################################
+ #
+@@ -238,6 +244,7 @@
+ allow httpd_php_t mysqld_var_run_t:sock_file write;
+ allow httpd_t mysqld_db_t:dir search;
+ allow httpd_t mysqld_db_t:sock_file rw_file_perms;
++allow httpd_t mysqld_var_run_t:sock_file rw_file_perms;
+ ')
+ allow httpd_t bin_t:dir search;
+ allow httpd_t sbin_t:dir search;
+@@ -269,8 +276,7 @@
+ ##################################################
+ dontaudit httpd_t admin_tty_type:chr_file rw_file_perms;
+ 
+-allow httpd_t krb5_conf_t:file { getattr read };
+-dontaudit httpd_t krb5_conf_t:file write;
++can_kerberos(httpd_t)
+ 
+ ifdef(`targeted_policy', `
+ typealias httpd_sys_content_t alias httpd_user_content_t;
+@@ -298,5 +304,12 @@
+ # Customer reported the following
+ #
+ ifdef(`snmpd.te', `
++dontaudit httpd_t snmpd_var_lib_t:dir search;
+ dontaudit httpd_t snmpd_var_lib_t:file { getattr write read };
+ ')
++
++ifdef(`mta.te', `
++allow system_mail_t httpd_log_t:file { append getattr };
++allow system_mail_t httpd_sys_script_rw_t:file { append read };
++allow system_mail_t httpd_t:tcp_socket { read write };
++')
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/arpwatch.te policy-1.19.1/domains/program/unused/arpwatch.te
+--- nsapolicy/domains/program/unused/arpwatch.te	2004-11-05 23:24:16.000000000 -0500
++++ policy-1.19.1/domains/program/unused/arpwatch.te	2004-11-11 21:20:11.528766491 -0500
+@@ -27,6 +27,7 @@
+ 
+ allow arpwatch_t sbin_t:dir search;
+ allow arpwatch_t sbin_t:lnk_file read;
++r_dir_file(arpwatch_t, etc_t)
+ can_ypbind(arpwatch_t)
+ allow system_mail_t arpwatch_tmp_t:file rw_file_perms;
+ ifdef(`postfix.te', `
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/bluetooth.te policy-1.19.1/domains/program/unused/bluetooth.te
+--- nsapolicy/domains/program/unused/bluetooth.te	2004-11-05 23:24:16.000000000 -0500
++++ policy-1.19.1/domains/program/unused/bluetooth.te	2004-11-11 21:20:11.529766378 -0500
+@@ -22,7 +22,10 @@
+ # Use the network.
+ can_network(bluetooth_t)
+ can_ypbind(bluetooth_t)
++ifdef(`dbusd.te', `
+ dbusd_client(system, bluetooth)
++allow bluetooth_t system_dbusd_t:dbus send_msg;
++')
+ allow bluetooth_t self:socket { create setopt ioctl bind listen };
+ allow bluetooth_t self:unix_dgram_socket create_socket_perms;
+ allow bluetooth_t self:unix_stream_socket create_stream_socket_perms;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/canna.te policy-1.19.1/domains/program/unused/canna.te
+--- nsapolicy/domains/program/unused/canna.te	2004-10-19 16:03:06.000000000 -0400
++++ policy-1.19.1/domains/program/unused/canna.te	2004-11-11 21:20:11.530766266 -0500
+@@ -28,8 +28,9 @@
+ 
+ rw_dir_create_file(canna_t, canna_var_lib_t)
+ 
+-can_network(canna_t)
++can_tcp_network(canna_t)
+ can_ypbind(canna_t)
++allow canna_t self:tcp_socket connect;
+ 
+ allow userdomain canna_var_run_t:dir search;
+ allow userdomain canna_var_run_t:sock_file write;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/courier.te policy-1.19.1/domains/program/unused/courier.te
+--- nsapolicy/domains/program/unused/courier.te	2004-08-27 09:30:29.000000000 -0400
++++ policy-1.19.1/domains/program/unused/courier.te	2004-11-11 21:20:11.530766266 -0500
+@@ -47,7 +47,6 @@
+ 
+ # Use the network.
+ can_network(courier_$1_t)
+-can_ypbind(courier_$1_t)
+ allow courier_$1_t self:fifo_file { read write getattr };
+ allow courier_$1_t self:unix_stream_socket create_stream_socket_perms;
+ allow courier_$1_t self:unix_dgram_socket create_socket_perms;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/cups.te policy-1.19.1/domains/program/unused/cups.te
+--- nsapolicy/domains/program/unused/cups.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/cups.te	2004-11-11 21:20:11.531766153 -0500
+@@ -19,7 +19,8 @@
+ typealias cupsd_rw_etc_t alias etc_cupsd_rw_t;
+ 
+ can_network(cupsd_t)
+-can_ypbind(cupsd_t)
++allow cupsd_t self:{ tcp_socket udp_socket } connect;
++
+ logdir_domain(cupsd)
+ 
+ tmp_domain(cupsd)
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/cyrus.te policy-1.19.1/domains/program/unused/cyrus.te
+--- nsapolicy/domains/program/unused/cyrus.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/cyrus.te	2004-11-11 21:20:11.532766040 -0500
+@@ -20,6 +20,7 @@
+ 
+ can_network(cyrus_t)
+ can_ypbind(cyrus_t)
++allow cyrus_t self:{ tcp_socket udp_socket } connect;
+ can_exec(cyrus_t, bin_t)
+ allow cyrus_t cyrus_var_lib_t:dir create_dir_perms;
+ allow cyrus_t cyrus_var_lib_t:{file sock_file } create_file_perms;
+@@ -45,3 +46,4 @@
+ allow system_crond_t cyrus_var_lib_t:file create_file_perms;
+ allow system_crond_su_t cyrus_var_lib_t:dir search;
+ ')
++allow cyrus_t mail_port_t:tcp_socket name_bind;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/dhcpc.te policy-1.19.1/domains/program/unused/dhcpc.te
+--- nsapolicy/domains/program/unused/dhcpc.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/dhcpc.te	2004-11-11 21:20:11.532766040 -0500
+@@ -22,8 +22,9 @@
+ # for SSP
+ allow dhcpc_t urandom_device_t:chr_file read;
+ 
+-can_network(dhcpc_t)
++can_udp_network(dhcpc_t, `{ dhcpc_port_t dhcpd_port_t }')
+ can_ypbind(dhcpc_t)
++allow dhcpc_t self:tcp_socket connect;
+ allow dhcpc_t self:unix_dgram_socket create_socket_perms;
+ allow dhcpc_t self:unix_stream_socket create_socket_perms;
+ allow dhcpc_t self:fifo_file rw_file_perms;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/dhcpd.te policy-1.19.1/domains/program/unused/dhcpd.te
+--- nsapolicy/domains/program/unused/dhcpd.te	2004-10-14 23:25:18.000000000 -0400
++++ policy-1.19.1/domains/program/unused/dhcpd.te	2004-11-11 21:20:11.533765927 -0500
+@@ -31,6 +31,7 @@
+ # Use the network.
+ can_network(dhcpd_t)
+ can_ypbind(dhcpd_t)
++allow dhcpd_t self:tcp_socket connect;
+ allow dhcpd_t self:unix_dgram_socket create_socket_perms;
+ allow dhcpd_t self:unix_stream_socket create_socket_perms;
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/dovecot.te policy-1.19.1/domains/program/unused/dovecot.te
+--- nsapolicy/domains/program/unused/dovecot.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/dovecot.te	2004-11-11 21:20:11.533765927 -0500
+@@ -15,6 +15,8 @@
+ allow dovecot_t self:process setrlimit;
+ can_network(dovecot_t)
+ can_ypbind(dovecot_t)
++allow dovecot_t self:tcp_socket connect;
++
+ allow dovecot_t self:unix_dgram_socket create_socket_perms;
+ allow dovecot_t self:unix_stream_socket create_stream_socket_perms;
+ can_unix_connect(dovecot_t, self)
+@@ -31,10 +33,9 @@
+ allow dovecot_t { self proc_t }:file { getattr read };
+ allow dovecot_t self:fifo_file rw_file_perms;
+ 
+-dontaudit dovecot_t krb5_conf_t:file write;
+-allow dovecot_t krb5_conf_t:file { getattr read };
++can_kerberos(dovecot_t)
+ 
+-daemon_sub_domain(dovecot_t, dovecot_auth, `, auth')
++daemon_sub_domain(dovecot_t, dovecot_auth, `, auth, auth_chkpwd')
+ allow dovecot_auth_t self:process { fork signal_perms };
+ allow dovecot_auth_t dovecot_t:unix_stream_socket { getattr accept read write ioctl };
+ allow dovecot_auth_t self:unix_dgram_socket create_socket_perms;
+@@ -47,3 +48,8 @@
+ allow dovecot_auth_t sysctl_kernel_t:dir search;
+ allow dovecot_auth_t sysctl_kernel_t:file read;
+ allow dovecot_auth_t sysctl_t:dir search;
++dontaudit dovecot_auth_t selinux_config_t:dir search;
++allow dovecot_t tmp_t:dir search;
++rw_dir_file(dovecot_t, mail_spool_t)
++allow dovecot_t mail_spool_t:lnk_file read;
++allow dovecot_t var_spool_t:dir { search };
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/ftpd.te policy-1.19.1/domains/program/unused/ftpd.te
+--- nsapolicy/domains/program/unused/ftpd.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/ftpd.te	2004-11-11 21:20:11.534765814 -0500
+@@ -16,7 +16,7 @@
+ typealias ftpd_etc_t alias etc_ftpd_t;
+ 
+ can_network(ftpd_t)
+-can_ypbind(ftpd_t)
++allow ftpd_t self:udp_socket connect;
+ allow ftpd_t self:unix_dgram_socket { sendto create_socket_perms };
+ allow ftpd_t self:unix_stream_socket create_socket_perms;
+ allow ftpd_t self:process { getcap setcap setsched setrlimit };
+@@ -32,11 +32,13 @@
+ 
+ ifdef(`crond.te', `
+ system_crond_entry(ftpd_exec_t, ftpd_t)
++allow system_crond_t xferlog_t:file r_file_perms;
+ can_exec(ftpd_t, { sbin_t shell_exec_t })
+ allow ftpd_t usr_t:file { getattr read };
+ ')
+ 
+ allow ftpd_t ftp_data_port_t:tcp_socket name_bind;
++allow ftpd_t port_t:tcp_socket name_bind;
+ 
+ # Allow ftpd to run directly without inetd.
+ bool ftpd_is_daemon false;
+@@ -85,9 +87,7 @@
+ allow ftpd_t proc_t:file { getattr read };
+ 
+ dontaudit ftpd_t sysadm_home_dir_t:dir getattr;
+-dontaudit ftpd_t krb5_conf_t:file write;
+ dontaudit ftpd_t selinux_config_t:dir search;
+-allow ftpd_t krb5_conf_t:file { getattr read };
+ ifdef(`automount.te', `
+ allow ftpd_t autofs_t:dir search;
+ ')
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/hald.te policy-1.19.1/domains/program/unused/hald.te
+--- nsapolicy/domains/program/unused/hald.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/hald.te	2004-11-11 21:20:11.535765702 -0500
+@@ -31,12 +31,13 @@
+ 
+ allow hald_t bin_t:file getattr;
+ allow hald_t self:netlink_route_socket r_netlink_socket_perms;
+-allow hald_t self:capability { net_admin sys_admin dac_override dac_read_search };
++allow hald_t self:capability { net_admin sys_admin dac_override dac_read_search mknod };
+ can_network(hald_t)
+ can_ypbind(hald_t)
+ 
+ allow hald_t device_t:lnk_file read;
+ allow hald_t { fixed_disk_device_t removable_device_t }:blk_file { getattr read ioctl };
++allow hald_t removable_device_t:blk_file write;
+ allow hald_t event_device_t:chr_file { getattr read ioctl };
+ allow hald_t printer_device_t:chr_file rw_file_perms;
+ allow hald_t urandom_device_t:chr_file read;
+@@ -60,7 +61,11 @@
+ allow hald_t usbfs_t:dir search;
+ allow hald_t usbfs_t:file { getattr read };
+ allow hald_t bin_t:lnk_file read;
+-r_dir_file(hald_t, { selinux_config_t default_context_t } )
++dontaudit hald_t selinux_config_t:dir search;
+ allow hald_t initrc_t:dbus send_msg;
+ allow initrc_t hald_t:dbus send_msg;
+ allow hald_t etc_runtime_t:file rw_file_perms;
++allow hald_t var_lib_t:dir search;
++allow hald_t device_t:dir create_dir_perms;
++allow hald_t device_t:chr_file create_file_perms;
++tmp_domain(hald)
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/i18n_input.te policy-1.19.1/domains/program/unused/i18n_input.te
+--- nsapolicy/domains/program/unused/i18n_input.te	2004-10-13 22:41:57.000000000 -0400
++++ policy-1.19.1/domains/program/unused/i18n_input.te	2004-11-11 21:20:11.535765702 -0500
+@@ -11,6 +11,7 @@
+ can_exec(i18n_input_t, i18n_input_exec_t)
+ can_network(i18n_input_t)
+ can_ypbind(i18n_input_t)
++allow i18n_input_t self:udp_socket connect;
+ 
+ can_tcp_connect(userdomain, i18n_input_t)
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/inetd.te policy-1.19.1/domains/program/unused/inetd.te
+--- nsapolicy/domains/program/unused/inetd.te	2004-11-05 23:24:16.000000000 -0500
++++ policy-1.19.1/domains/program/unused/inetd.te	2004-11-11 21:20:11.536765589 -0500
+@@ -21,6 +21,8 @@
+ daemon_domain(inetd, `ifdef(`unlimitedInetd', `,admin, etc_writer, fs_domain, auth_write, privmem')' )
+ 
+ can_network(inetd_t)
++allow inetd_t self:udp_socket connect;
++
+ allow inetd_t self:unix_dgram_socket create_socket_perms;
+ allow inetd_t self:unix_stream_socket create_socket_perms;
+ allow inetd_t self:fifo_file rw_file_perms;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/innd.te policy-1.19.1/domains/program/unused/innd.te
+--- nsapolicy/domains/program/unused/innd.te	2004-10-19 16:03:06.000000000 -0400
++++ policy-1.19.1/domains/program/unused/innd.te	2004-11-11 21:20:11.536765589 -0500
+@@ -30,6 +30,7 @@
+ 
+ can_network(innd_t)
+ can_ypbind(innd_t)
++allow innd_t self:udp_socket connect;
+ 
+ can_unix_send( { innd_t sysadm_t }, { innd_t sysadm_t } )
+ allow innd_t self:unix_dgram_socket create_socket_perms;
+@@ -64,6 +65,9 @@
+ 
+ ifdef(`crond.te', `
+ system_crond_entry(innd_exec_t, innd_t)
++allow system_crond_t innd_etc_t:file { getattr read };
++rw_dir_create_file(system_crond_t, innd_log_t)
++rw_dir_create_file(system_crond_t, innd_var_run_t)
+ ')
+ ifdef(`syslogd.te', `
+ allow syslogd_t innd_log_t:dir search;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/kerberos.te policy-1.19.1/domains/program/unused/kerberos.te
+--- nsapolicy/domains/program/unused/kerberos.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/kerberos.te	2004-11-11 21:20:11.537765476 -0500
+@@ -16,10 +16,6 @@
+ #
+ # Rules for the krb5kdc_t,kadmind_t domains.
+ #
+-type kerberos_port_t, port_type, reserved_port_type;
+-type kerberos_admin_port_t, port_type, reserved_port_type;
+-type kerberos_master_port_t, port_type;
+-
+ daemon_domain(krb5kdc)
+ daemon_domain(kadmind)
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/lockdev.te policy-1.19.1/domains/program/unused/lockdev.te
+--- nsapolicy/domains/program/unused/lockdev.te	1969-12-31 19:00:00.000000000 -0500
++++ policy-1.19.1/domains/program/unused/lockdev.te	2004-11-11 21:20:11.537765476 -0500
+@@ -0,0 +1,11 @@
++#DESC Lockdev - libblockdev helper application
++#
++# Authors:  Daniel Walsh <dwalsh@redhat.com> 
++#
++
++
++# Type for the lockdev
++type lockdev_exec_t, file_type, sysadmfile, exec_type;
++
++# Everything else is in the lockdev_domain macro in
++# macros/program/lockdev_macros.te.
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/mailman.te policy-1.19.1/domains/program/unused/mailman.te
+--- nsapolicy/domains/program/unused/mailman.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/mailman.te	2004-11-11 21:20:11.538765363 -0500
+@@ -20,7 +20,7 @@
+ can_exec_any(mailman_$1_t)
+ allow mailman_$1_t { proc_t sysctl_t sysctl_kernel_t }:dir search;
+ allow mailman_$1_t { proc_t sysctl_kernel_t }:file { read getattr };
+-allow mailman_$1_t var_lib_t:dir { getattr search };
++allow mailman_$1_t var_lib_t:dir { getattr search read };
+ allow mailman_$1_t var_lib_t:lnk_file read;
+ allow mailman_$1_t device_t:dir search;
+ allow mailman_$1_t etc_runtime_t:file { read getattr };
+@@ -29,13 +29,14 @@
+ allow mailman_$1_t mailman_lock_t:dir rw_dir_perms;
+ allow mailman_$1_t fs_t:filesystem getattr;
+ can_network(mailman_$1_t)
+-can_ypbind(mailman_$1_t)
++allow mailman_$1_t self:udp_socket connect;
+ allow mailman_$1_t self:unix_stream_socket create_socket_perms;
+ allow mailman_$1_t var_t:dir r_dir_perms;
+ ')
+ 
+ mailman_domain(queue, `, auth_chkpwd, nscd_client_domain')
+ can_tcp_connect(mailman_queue_t, mail_server_domain)
++allow mailman_queue_t self:tcp_socket connect;
+ 
+ can_exec(mailman_queue_t, su_exec_t)
+ allow mailman_queue_t self:capability { setgid setuid };
+@@ -72,8 +73,9 @@
+ domain_auto_trans({ httpd_t httpd_suexec_t }, mailman_cgi_exec_t, mailman_cgi_t)
+ # should have separate types for public and private archives
+ r_dir_file(httpd_t, mailman_archive_t)
+-allow httpd_t mailman_data_t:dir search;
+-r_dir_file(mailman_cgi_t, mailman_archive_t)
++rw_dir_file(mailman_cgi_t, mailman_archive_t)
++allow mailman_cgi_t mailman_archive_t:lnk_file create_lnk_perms;
++allow httpd_t mailman_data_t:dir { getattr search };
+ 
+ dontaudit mailman_cgi_t httpd_log_t:file append;
+ allow httpd_t mailman_cgi_t:process signal;
+@@ -83,6 +85,8 @@
+ allow mailman_cgi_t httpd_sys_script_t:dir search;
+ allow mailman_cgi_t devtty_t:chr_file { read write };
+ allow mailman_cgi_t self:process { fork sigchld };
++allow mailman_cgi_t var_spool_t:dir search;
++dontaudit mailman_cgi_t src_t:dir search;
+ ')
+ 
+ allow mta_delivery_agent mailman_data_t:dir search;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/mysqld.te policy-1.19.1/domains/program/unused/mysqld.te
+--- nsapolicy/domains/program/unused/mysqld.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/mysqld.te	2004-11-11 21:35:02.070298769 -0500
+@@ -87,3 +87,4 @@
+ # because Fedora has the sock_file in the database directory
+ file_type_auto_trans(mysqld_t, mysqld_db_t, mysqld_var_run_t, sock_file)
+ ')
++
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/named.te policy-1.19.1/domains/program/unused/named.te
+--- nsapolicy/domains/program/unused/named.te	2004-11-05 23:24:16.000000000 -0500
++++ policy-1.19.1/domains/program/unused/named.te	2004-11-11 21:20:11.539765250 -0500
+@@ -51,6 +51,8 @@
+ #Named can use network
+ can_network(named_t)
+ can_ypbind(named_t)
++allow named_t self:tcp_socket connect;
++
+ # allow UDP transfer to/from any program
+ can_udp_send(domain, named_t)
+ can_udp_send(named_t, domain)
+@@ -101,6 +103,8 @@
+ uses_shlib(ndc_t)
+ can_network(ndc_t)
+ can_ypbind(ndc_t)
++allow ndc_t self:tcp_socket connect;
++can_resolve(ndc_t)
+ read_locale(ndc_t)
+ can_tcp_connect(ndc_t, named_t)
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/nscd.te policy-1.19.1/domains/program/unused/nscd.te
+--- nsapolicy/domains/program/unused/nscd.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/nscd.te	2004-11-11 21:20:11.540765138 -0500
+@@ -24,6 +24,7 @@
+ allow nscd_t etc_t:lnk_file read;
+ can_network(nscd_t)
+ can_ypbind(nscd_t)
++allow nscd_t self:{ tcp_socket udp_socket } connect;
+ 
+ file_type_auto_trans(nscd_t, var_run_t, nscd_var_run_t, sock_file)
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/ntpd.te policy-1.19.1/domains/program/unused/ntpd.te
+--- nsapolicy/domains/program/unused/ntpd.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/ntpd.te	2004-11-11 21:21:18.998154835 -0500
+@@ -12,6 +12,9 @@
+ type ntp_drift_t, file_type, sysadmfile;
+ type ntp_port_t, port_type, reserved_port_type;
+ 
++type ntpdate_exec_t, file_type, sysadmfile, exec_type;
++domain_auto_trans(initrc_t, ntpdate_exec_t, ntpd_t)
++
+ logdir_domain(ntpd)
+ 
+ allow ntpd_t var_lib_t:dir r_dir_perms;
+@@ -36,6 +39,7 @@
+ # Use the network.
+ can_network(ntpd_t)
+ can_ypbind(ntpd_t)
++allow ntpd_t self:{ tcp_socket udp_socket } connect;
+ allow ntpd_t ntp_port_t:udp_socket name_bind;
+ allow ntpd_t self:unix_dgram_socket create_socket_perms;
+ allow ntpd_t self:unix_stream_socket create_socket_perms;
+@@ -45,12 +49,11 @@
+ 
+ # for cron jobs
+ # system_crond_t is not right, cron is not doing what it should
+-ifdef(`crond.te', `
+-system_crond_entry(ntpd_exec_t, ntpd_t)
++ifdef(`crond.te', `system_crond_entry(ntpd_exec_t, ntpd_t)')
+ can_exec(ntpd_t, initrc_exec_t)
+ allow ntpd_t self:fifo_file { read write getattr };
+ allow ntpd_t etc_runtime_t:file r_file_perms;
+-can_exec(ntpd_t, { bin_t shell_exec_t sbin_t ls_exec_t logrotate_exec_t ntpd_exec_t })
++can_exec(ntpd_t, { bin_t shell_exec_t sbin_t ls_exec_t ntpd_exec_t })
+ allow ntpd_t { sbin_t bin_t }:dir search;
+ allow ntpd_t bin_t:lnk_file read;
+ allow ntpd_t sysctl_kernel_t:dir search;
+@@ -60,7 +63,6 @@
+ allow ntpd_t self:file { getattr read };
+ dontaudit ntpd_t domain:dir search;
+ ifdef(`logrotate.te', `can_exec(ntpd_t, logrotate_exec_t)')
+-')
+ 
+ allow ntpd_t devtty_t:chr_file rw_file_perms;
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/ping.te policy-1.19.1/domains/program/unused/ping.te
+--- nsapolicy/domains/program/unused/ping.te	2004-06-16 13:33:36.000000000 -0400
++++ policy-1.19.1/domains/program/unused/ping.te	2004-11-11 21:20:11.541765025 -0500
+@@ -35,6 +35,7 @@
+ can_ypbind(ping_t)
+ allow ping_t etc_t:file { getattr read };
+ allow ping_t self:unix_stream_socket create_socket_perms;
++allow ping_t self:{ tcp_socket udp_socket } connect;
+ 
+ # Let ping create raw ICMP packets.
+ allow ping_t self:rawip_socket { create ioctl read write bind getopt setopt };
+@@ -54,4 +55,6 @@
+ 
+ # it tries to access /var/run
+ dontaudit ping_t var_t:dir search;
++dontaudit ping_t devtty_t:chr_file { read write };
++dontaudit ping_t ping_t:capability sys_tty_config;
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/postfix.te policy-1.19.1/domains/program/unused/postfix.te
+--- nsapolicy/domains/program/unused/postfix.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/postfix.te	2004-11-11 21:20:11.542764912 -0500
+@@ -119,6 +119,8 @@
+ allow postfix_master_t postfix_private_t:fifo_file create_file_perms;
+ can_network(postfix_master_t)
+ can_ypbind(postfix_master_t)
++allow postfix_master_t self:{ tcp_socket udp_socket } connect;
++
+ allow postfix_master_t smtp_port_t:tcp_socket name_bind;
+ allow postfix_master_t postfix_spool_maildrop_t:dir rw_dir_perms;
+ allow postfix_master_t postfix_spool_maildrop_t:file { unlink rename getattr };
+@@ -158,6 +160,7 @@
+ allow postfix_$1_t self:capability { setuid setgid dac_override };
+ can_network(postfix_$1_t)
+ can_ypbind(postfix_$1_t)
++allow postfix_$1_t self:udp_socket connect;
+ ')
+ 
+ postfix_server_domain(smtp, `, mail_server_sender')
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/postgresql.te policy-1.19.1/domains/program/unused/postgresql.te
+--- nsapolicy/domains/program/unused/postgresql.te	2004-10-13 22:41:57.000000000 -0400
++++ policy-1.19.1/domains/program/unused/postgresql.te	2004-11-11 21:20:11.542764912 -0500
+@@ -13,6 +13,8 @@
+ type postgresql_port_t, port_type;
+ daemon_domain(postgresql)
+ allow initrc_t postgresql_exec_t:lnk_file read;
++allow postgresql_t usr_t:file { getattr read };
++allow postgresql_t self:udp_socket connect;
+ 
+ allow postgresql_t postgresql_var_run_t:sock_file create_file_perms;
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/privoxy.te policy-1.19.1/domains/program/unused/privoxy.te
+--- nsapolicy/domains/program/unused/privoxy.te	2004-03-17 13:26:05.000000000 -0500
++++ policy-1.19.1/domains/program/unused/privoxy.te	2004-11-11 21:20:11.543764799 -0500
+@@ -18,6 +18,7 @@
+ # Use the network.
+ can_network(privoxy_t)
+ allow privoxy_t port_t:{ tcp_socket udp_socket } name_bind;
++allow privoxy_t self:{ tcp_socket udp_socket } connect;
+ allow privoxy_t etc_t:file { getattr read };
+ allow privoxy_t self:capability { setgid setuid };
+ allow privoxy_t self:unix_stream_socket create_socket_perms ;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/procmail.te policy-1.19.1/domains/program/unused/procmail.te
+--- nsapolicy/domains/program/unused/procmail.te	2004-10-13 22:41:57.000000000 -0400
++++ policy-1.19.1/domains/program/unused/procmail.te	2004-11-11 21:20:11.544764686 -0500
+@@ -11,7 +11,7 @@
+ # procmail_exec_t is the type of the procmail executable.
+ #
+ # privhome only works until we define a different type for maildir
+-type procmail_t, domain, privlog, privhome;
++type procmail_t, domain, privlog, privhome, nscd_client_domain;
+ type procmail_exec_t, file_type, sysadmfile, exec_type;
+ 
+ role system_r types procmail_t;
+@@ -70,8 +70,9 @@
+ 
+ ifdef(`sendmail.te', `
+ r_dir_file(procmail_t, etc_mail_t)
++allow procmail_t sendmail_t:tcp_socket { read write };
+ ')
+ 
+ ifdef(`hide_broken_symptoms', `
+-dontaudit procmail_t mqueue_spool_t:file { getattr read };
++dontaudit procmail_t mqueue_spool_t:file { getattr read write };
+ ')
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/rlogind.te policy-1.19.1/domains/program/unused/rlogind.te
+--- nsapolicy/domains/program/unused/rlogind.te	2004-10-19 16:03:06.000000000 -0400
++++ policy-1.19.1/domains/program/unused/rlogind.te	2004-11-11 21:20:11.544764686 -0500
+@@ -14,7 +14,6 @@
+ role system_r types rlogind_t;
+ uses_shlib(rlogind_t)
+ can_network(rlogind_t)
+-can_ypbind(rlogind_t)
+ type rlogind_exec_t, file_type, sysadmfile, exec_type;
+ domain_auto_trans(inetd_t, rlogind_exec_t, rlogind_t)
+ ifdef(`tcpd.te', `
+@@ -75,8 +74,6 @@
+ # Modify /var/log/wtmp.
+ allow rlogind_t var_log_t:dir search;
+ allow rlogind_t wtmp_t:file rw_file_perms;
+-allow rlogind_t krb5_conf_t:file { getattr read };
+-dontaudit rlogind_t krb5_conf_t:file write;
+ allow rlogind_t urandom_device_t:chr_file { getattr read };
+ dontaudit rlogind_t selinux_config_t:dir search;
+ allow rlogind_t staff_home_dir_t:dir search;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/rpcd.te policy-1.19.1/domains/program/unused/rpcd.te
+--- nsapolicy/domains/program/unused/rpcd.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/rpcd.te	2004-11-11 21:20:11.545764574 -0500
+@@ -14,6 +14,7 @@
+ daemon_base_domain($1)
+ can_network($1_t)
+ can_ypbind($1_t)
++allow $1_t self:{ udp_socket tcp_socket } connect;
+ allow $1_t etc_t:file { getattr read };
+ read_locale($1_t)
+ allow $1_t self:capability net_bind_service;
+@@ -24,6 +25,7 @@
+ allow $1_t var_lib_nfs_t:file create_file_perms;
+ # do not log when it tries to bind to a port belonging to another domain
+ dontaudit $1_t reserved_port_type:{ tcp_socket udp_socket } name_bind;
++allow $1_t reserved_port_t:{ udp_socket tcp_socket } name_bind;
+ allow $1_t self:netlink_route_socket r_netlink_socket_perms;
+ allow $1_t self:unix_dgram_socket create_socket_perms;
+ allow $1_t self:unix_stream_socket create_stream_socket_perms;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/rshd.te policy-1.19.1/domains/program/unused/rshd.te
+--- nsapolicy/domains/program/unused/rshd.te	2004-10-19 16:03:06.000000000 -0400
++++ policy-1.19.1/domains/program/unused/rshd.te	2004-11-11 21:20:11.545764574 -0500
+@@ -31,8 +31,9 @@
+ allow rshd_t self:unix_dgram_socket create_socket_perms;
+ allow rshd_t self:unix_stream_socket create_stream_socket_perms;
+ allow rshd_t { home_root_t home_dir_type }:dir { search getattr };
+-allow rshd_t krb5_conf_t:file { getattr read };
+-dontaudit rshd_t krb5_conf_t:file write;
++can_kerberos(rshd_t)
+ allow rshd_t tmp_t:dir { search };
++ifdef(`rlogind.te', `
+ allow rshd_t rlogind_tmp_t:file rw_file_perms;
++')
+ allow rshd_t urandom_device_t:chr_file { getattr read };
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/samba.te policy-1.19.1/domains/program/unused/samba.te
+--- nsapolicy/domains/program/unused/samba.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/samba.te	2004-11-11 21:20:11.546764461 -0500
+@@ -49,7 +49,6 @@
+ 
+ # Use the network.
+ can_network(smbd_t)
+-can_ypbind(smbd_t)
+ 
+ allow smbd_t urandom_device_t:chr_file { getattr read };
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/sendmail.te policy-1.19.1/domains/program/unused/sendmail.te
+--- nsapolicy/domains/program/unused/sendmail.te	2004-11-09 13:35:12.000000000 -0500
++++ policy-1.19.1/domains/program/unused/sendmail.te	2004-11-11 21:20:11.546764461 -0500
+@@ -27,6 +27,7 @@
+ # Use the network.
+ can_network(sendmail_t)
+ can_ypbind(sendmail_t)
++allow sendmail_t self:{ tcp_socket udp_socket } connect;
+ 
+ allow sendmail_t self:unix_stream_socket create_stream_socket_perms;
+ allow sendmail_t self:unix_dgram_socket create_socket_perms;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/slapd.te policy-1.19.1/domains/program/unused/slapd.te
+--- nsapolicy/domains/program/unused/slapd.te	2004-10-19 16:03:06.000000000 -0400
++++ policy-1.19.1/domains/program/unused/slapd.te	2004-11-11 21:20:11.547764348 -0500
+@@ -30,6 +30,7 @@
+ allow slapd_t self:unix_dgram_socket create_socket_perms;
+ # allow any domain to connect to the LDAP server
+ can_tcp_connect(domain, slapd_t)
++allow slapd_t self:{ tcp_socket udp_socket } connect;
+ 
+ # Use capabilities  should not need kill...
+ allow slapd_t self:capability { kill setgid setuid net_bind_service net_raw };
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/snmpd.te policy-1.19.1/domains/program/unused/snmpd.te
+--- nsapolicy/domains/program/unused/snmpd.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/domains/program/unused/snmpd.te	2004-11-11 21:20:11.548764235 -0500
+@@ -15,6 +15,7 @@
+ 
+ can_network(snmpd_t)
+ can_ypbind(snmpd_t)
++allow snmpd_t self:{ tcp_socket udp_socket } connect;
+ 
+ type snmp_port_t, port_type, reserved_port_type;
+ allow snmpd_t snmp_port_t:{ udp_socket tcp_socket } name_bind;
+@@ -38,7 +39,7 @@
+ allow snmpd_t self:unix_dgram_socket create_socket_perms;
+ allow snmpd_t self:unix_stream_socket create_socket_perms;
+ allow snmpd_t etc_t:lnk_file read;
+-allow snmpd_t { etc_t etc_runtime_t }:file { getattr read };
++allow snmpd_t { etc_t etc_runtime_t }:file r_file_perms;
+ allow snmpd_t urandom_device_t:chr_file read;
+ allow snmpd_t self:capability { dac_override kill net_bind_service net_admin sys_nice sys_tty_config };
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/spamd.te policy-1.19.1/domains/program/unused/spamd.te
+--- nsapolicy/domains/program/unused/spamd.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/domains/program/unused/spamd.te	2004-11-11 21:20:11.548764235 -0500
+@@ -24,6 +24,7 @@
+ dontaudit spamd_t sysadm_home_dir_t:dir getattr;
+ 
+ can_network(spamd_t)
++allow spamd_t self:{ tcp_socket udp_socket } connect;
+ allow spamd_t self:capability net_bind_service;
+ 
+ allow spamd_t proc_t:file { getattr read };
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/squid.te policy-1.19.1/domains/program/unused/squid.te
+--- nsapolicy/domains/program/unused/squid.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/domains/program/unused/squid.te	2004-11-11 21:20:11.549764122 -0500
+@@ -55,6 +55,7 @@
+ can_network(squid_t)
+ can_ypbind(squid_t)
+ can_tcp_connect(web_client_domain, squid_t)
++allow squid_t self:{ tcp_socket udp_socket } connect;
+ 
+ # tcp port 8080 and udp port 3130 is http_cache_port_t (see net_contexts)
+ allow squid_t http_cache_port_t:tcp_socket name_bind;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/swat.te policy-1.19.1/domains/program/unused/swat.te
+--- nsapolicy/domains/program/unused/swat.te	2004-10-06 09:18:32.000000000 -0400
++++ policy-1.19.1/domains/program/unused/swat.te	2004-11-11 21:20:11.549764122 -0500
+@@ -2,6 +2,7 @@
+ #
+ # Author:  Dan Walsh <dwalsh@redhat.com>
+ #
++# Depends: inetd.te
+ 
+ #################################
+ #
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/traceroute.te policy-1.19.1/domains/program/unused/traceroute.te
+--- nsapolicy/domains/program/unused/traceroute.te	2004-08-27 09:30:29.000000000 -0400
++++ policy-1.19.1/domains/program/unused/traceroute.te	2004-11-11 21:20:11.550764010 -0500
+@@ -20,6 +20,7 @@
+ uses_shlib(traceroute_t)
+ can_network(traceroute_t)
+ can_ypbind(traceroute_t)
++allow traceroute_t self:{ tcp_socket udp_socket } connect;
+ allow traceroute_t node_t:rawip_socket node_bind;
+ type traceroute_exec_t, file_type, sysadmfile, exec_type;
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/uwimapd.te policy-1.19.1/domains/program/unused/uwimapd.te
+--- nsapolicy/domains/program/unused/uwimapd.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/domains/program/unused/uwimapd.te	2004-11-11 21:20:11.550764010 -0500
+@@ -9,7 +9,6 @@
+ tmp_domain(imapd)
+ 
+ can_network(imapd_t)
+-can_ypbind(imapd_t)
+ 
+ #declare our own services
+ allow imapd_t self:capability { dac_override net_bind_service setgid setuid sys_resource };
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/vpnc.te policy-1.19.1/domains/program/unused/vpnc.te
+--- nsapolicy/domains/program/unused/vpnc.te	2004-10-14 23:25:18.000000000 -0400
++++ policy-1.19.1/domains/program/unused/vpnc.te	2004-11-11 21:20:11.551763897 -0500
+@@ -17,6 +17,8 @@
+ # Use the network.
+ can_network(vpnc_t)
+ can_ypbind(vpnc_t)
++allow vpnc_t self:udp_socket connect;
++allow vpnc_t self:socket create_socket_perms;
+ 
+ # Use capabilities.
+ allow vpnc_t self:capability { net_admin ipc_lock net_bind_service net_raw };
+@@ -28,3 +30,12 @@
+ allow vpnc_t self:unix_dgram_socket create_socket_perms;
+ allow vpnc_t self:unix_stream_socket create_socket_perms;
+ allow vpnc_t admin_tty_type:chr_file rw_file_perms;
++allow vpnc_t port_t:udp_socket name_bind;
++allow vpnc_t etc_runtime_t:file { getattr read };
++allow vpnc_t proc_t:file { getattr read };
++dontaudit vpnc_t selinux_config_t:dir search;
++can_exec(vpnc_t, {bin_t sbin_t ifconfig_exec_t shell_exec_t })
++allow vpnc_t sysctl_net_t:dir search;
++allow vpnc_t sbin_t:dir search;
++allow vpnc_t bin_t:dir search;
++allow vpnc_t bin_t:lnk_file read;
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/xdm.te policy-1.19.1/domains/program/unused/xdm.te
+--- nsapolicy/domains/program/unused/xdm.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/domains/program/unused/xdm.te	2004-11-11 21:20:11.631754872 -0500
+@@ -46,7 +46,7 @@
+ allow xdm_t default_context_t:file { read getattr };
+ 
+ can_network(xdm_t)
+-can_ypbind(xdm_t)
++allow xdm_t self:udp_socket connect;
+ allow xdm_t self:unix_stream_socket { connectto create_stream_socket_perms };
+ allow xdm_t self:unix_dgram_socket create_socket_perms;
+ allow xdm_t self:fifo_file rw_file_perms;
+@@ -287,7 +287,7 @@
+ }
+ 
+ # for .dmrc
+-allow xdm_t user_home_dir_type:dir search;
++allow xdm_t user_home_dir_type:dir { getattr search };
+ allow xdm_t user_home_type:file { getattr read };
+ 
+ allow xdm_t mnt_t:dir { getattr read search };
+@@ -309,8 +309,6 @@
+ ')
+ 
+ allow xdm_t var_log_t:file read;
+-dontaudit xdm_t krb5_conf_t:file write;
+-allow xdm_t krb5_conf_t:file { getattr read };
+ allow xdm_t self:capability { sys_nice sys_rawio net_bind_service };
+ allow xdm_t self:process setrlimit;
+ allow xdm_t wtmp_t:file { getattr read };
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/program/unused/ypbind.te policy-1.19.1/domains/program/unused/ypbind.te
+--- nsapolicy/domains/program/unused/ypbind.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/domains/program/unused/ypbind.te	2004-11-11 21:20:11.632754760 -0500
+@@ -12,8 +12,6 @@
+ #
+ daemon_domain(ypbind)
+ 
+-bool allow_ypbind true;
+-
+ tmp_domain(ypbind)
+ 
+ # Use capabilities.
+@@ -22,6 +20,7 @@
+ # Use the network.
+ can_network(ypbind_t)
+ allow ypbind_t port_t:{ tcp_socket udp_socket } name_bind;
++allow ypbind_t self:{ tcp_socket udp_socket } connect;
+ 
+ allow ypbind_t self:fifo_file rw_file_perms;
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/domains/user.te policy-1.19.1/domains/user.te
+--- nsapolicy/domains/user.te	2004-11-05 23:24:16.000000000 -0500
++++ policy-1.19.1/domains/user.te	2004-11-11 21:20:11.633754647 -0500
+@@ -15,6 +15,12 @@
+ # and may change other protocols 
+ bool user_tcp_server false;
+ 
++# Allow system to run with NIS
++bool allow_ypbind false;
++
++# Allow system to run with kerberos
++bool allow_kerberos false;
++
+ # Allow users to rw usb devices
+ bool user_rw_usb false;
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/file_contexts/program/apache.fc policy-1.19.1/file_contexts/program/apache.fc
+--- nsapolicy/file_contexts/program/apache.fc	2004-10-14 23:25:19.000000000 -0400
++++ policy-1.19.1/file_contexts/program/apache.fc	2004-11-11 21:20:11.633754647 -0500
+@@ -37,3 +37,4 @@
+ # suse puts shell scripts there :-(
+ /usr/share/apache2/.*	--	system_u:object_r:bin_t
+ ')
++/var/lib/squirrelmail/prefs(/.*)?	system_u:object_r:httpd_sys_script_rw_t
+diff --exclude-from=exclude -N -u -r nsapolicy/file_contexts/program/bootloader.fc policy-1.19.1/file_contexts/program/bootloader.fc
+--- nsapolicy/file_contexts/program/bootloader.fc	2004-08-18 08:42:50.000000000 -0400
++++ policy-1.19.1/file_contexts/program/bootloader.fc	2004-11-11 21:20:11.634754534 -0500
+@@ -9,4 +9,3 @@
+ /etc/mkinitrd/scripts/.* --	system_u:object_r:bootloader_exec_t
+ /sbin/ybin.*		--	system_u:object_r:bootloader_exec_t
+ /etc/yaboot\.conf.*	--	system_u:object_r:bootloader_etc_t
+-/boot/grub/menu.lst	--	system_u:object_r:boot_runtime_t
+diff --exclude-from=exclude -N -u -r nsapolicy/file_contexts/program/lockdev.fc policy-1.19.1/file_contexts/program/lockdev.fc
+--- nsapolicy/file_contexts/program/lockdev.fc	1969-12-31 19:00:00.000000000 -0500
++++ policy-1.19.1/file_contexts/program/lockdev.fc	2004-11-11 21:20:11.634754534 -0500
+@@ -0,0 +1,2 @@
++# lockdev 
++/usr/sbin/lockdev	--	system_u:object_r:lockdev_exec_t
+diff --exclude-from=exclude -N -u -r nsapolicy/file_contexts/program/ntpd.fc policy-1.19.1/file_contexts/program/ntpd.fc
+--- nsapolicy/file_contexts/program/ntpd.fc	2004-10-09 21:06:15.000000000 -0400
++++ policy-1.19.1/file_contexts/program/ntpd.fc	2004-11-11 21:20:11.635754421 -0500
+@@ -3,7 +3,7 @@
+ /etc/ntp(d)?\.conf		--	system_u:object_r:net_conf_t
+ /etc/ntp/step-tickers		--	system_u:object_r:net_conf_t
+ /usr/sbin/ntpd			--	system_u:object_r:ntpd_exec_t
+-/usr/sbin/ntpdate		--	system_u:object_r:ntpd_exec_t
++/usr/sbin/ntpdate		--	system_u:object_r:ntpdate_exec_t
+ /var/log/ntpstats(/.*)?			system_u:object_r:ntpd_log_t
+ /var/log/ntpd.*			--	system_u:object_r:ntpd_log_t
+ /var/log/xntpd.*		--	system_u:object_r:ntpd_log_t
+diff --exclude-from=exclude -N -u -r nsapolicy/file_contexts/types.fc policy-1.19.1/file_contexts/types.fc
+--- nsapolicy/file_contexts/types.fc	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/file_contexts/types.fc	2004-11-11 21:20:11.636754308 -0500
+@@ -111,7 +111,6 @@
+ #
+ /boot(/.*)?			system_u:object_r:boot_t
+ /boot/System\.map-.*	--	system_u:object_r:system_map_t
+-/boot/kernel\.h.*	--	system_u:object_r:boot_runtime_t
+ 
+ #
+ # /dev
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/admin_macros.te policy-1.19.1/macros/admin_macros.te
+--- nsapolicy/macros/admin_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/admin_macros.te	2004-11-11 21:20:11.636754308 -0500
+@@ -17,6 +17,7 @@
+ # Type for home directory.
+ type $1_home_dir_t, file_type, sysadmfile, home_dir_type, home_type;
+ type $1_home_t, file_type, sysadmfile, home_type;
++attribute $1_homedirfile;
+ 
+ # Type and access for pty devices.
+ can_create_pty($1)
+@@ -106,6 +107,7 @@
+ allow $1_t tty_device_t:chr_file rw_file_perms;
+ allow $1_t ttyfile:chr_file rw_file_perms;
+ allow $1_t ptyfile:chr_file rw_file_perms;
++allow $1_t serial_device:chr_file setattr;
+ 
+ # allow setting up tunnels
+ allow $1_t tun_tap_device_t:chr_file rw_file_perms;
+@@ -155,6 +157,7 @@
+ allow xdm_t $1_home_t:lnk_file read;
+ allow xdm_t $1_home_t:dir search;
+ }
++allow $1_t xdm_t:fifo_file rw_file_perms;
+ ')dnl end ifdef xauth.te
+ ')dnl end ifdef xdm.te
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/base_user_macros.te policy-1.19.1/macros/base_user_macros.te
+--- nsapolicy/macros/base_user_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/base_user_macros.te	2004-11-11 21:20:11.637754196 -0500
+@@ -196,6 +196,13 @@
+ # Use the network.
+ can_network($1_t)
+ can_ypbind($1_t)
++allow $1_t self:{ tcp_socket udp_socket } connect;
++
++ifdef(`pamconsole.te', `
++allow $1_t pam_var_console_t:dir search;
++')
++
++allow $1_t var_lock_t:dir search;
+ 
+ # Grant permissions to access the system DBus
+ ifdef(`dbusd.te', `
+@@ -269,7 +276,8 @@
+ allow $1_t xdm_xserver_tmp_t:sock_file { read write };
+ allow $1_t xdm_xserver_tmp_t:dir search;
+ allow $1_t xdm_xserver_t:unix_stream_socket connectto;
+-allow $1_t xdm_var_run_t:dir search;
++# certain apps want to read xdm.pid file
++r_dir_file($1_t, xdm_var_run_t)
+ allow $1_t xdm_var_lib_t:file { getattr read };
+ allow xdm_t $1_home_dir_t:dir getattr;
+ ifdef(`xauth.te', `
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/core_macros.te policy-1.19.1/macros/core_macros.te
+--- nsapolicy/macros/core_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/core_macros.te	2004-11-11 21:20:11.638754083 -0500
+@@ -132,22 +132,32 @@
+ #
+ # Permissions for using sockets.
+ # 
+-define(`rw_socket_perms', `{ ioctl read getattr write setattr append bind connect getopt setopt shutdown }')
++define(`rw_socket_perms', `{ ioctl read getattr write setattr append bind getopt setopt shutdown }')
+ 
+ #
+ # Permissions for creating and using sockets.
+ # 
+-define(`create_socket_perms', `{ create ioctl read getattr write setattr append bind connect getopt setopt shutdown }')
++define(`connected_socket_perms', `{ create rw_socket_perms }')
++
++#
++# Permissions for creating, connecting and using sockets.
++# 
++define(`create_socket_perms', `{ connected_socket_perms connect }')
+ 
+ #
+ # Permissions for using stream sockets.
+ # 
+-define(`rw_stream_socket_perms', `{ ioctl read getattr write setattr append bind connect getopt setopt shutdown listen accept }')
++define(`rw_stream_socket_perms', `{ rw_socket_perms listen accept }')
++
++#
++# Permissions for creating and using stream sockets.
++# 
++define(`connected_stream_socket_perms', `{ create rw_stream_socket_perms }')
+ 
+ #
+ # Permissions for creating and using stream sockets.
+ # 
+-define(`create_stream_socket_perms', `{ create ioctl read getattr write setattr append bind connect getopt setopt shutdown listen accept }')
++define(`create_stream_socket_perms', `{ connect connected_stream_socket_perms }')
+ 
+ 
+ #
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/global_macros.te policy-1.19.1/macros/global_macros.te
+--- nsapolicy/macros/global_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/global_macros.te	2004-11-11 21:20:11.639753970 -0500
+@@ -118,64 +118,6 @@
+ 
+ #################################
+ #
+-# can_network(domain)
+-#
+-# Permissions for accessing the network.
+-# See types/network.te for the network types.
+-# See net_contexts for security contexts for network entities.
+-#
+-define(`can_network',`
+-#
+-# Allow the domain to create and use UDP and TCP sockets.
+-# Other kinds of sockets must be separately authorized for use.
+-allow $1 self:udp_socket create_socket_perms;
+-allow $1 self:tcp_socket create_stream_socket_perms;
+-
+-#
+-# Allow the domain to send or receive using any network interface.
+-# netif_type is a type attribute for all network interface types.
+-#
+-allow $1 netif_type:netif { tcp_send udp_send rawip_send };
+-allow $1 netif_type:netif { tcp_recv udp_recv rawip_recv };
+-
+-#
+-# Allow the domain to send to or receive from any node.
+-# node_type is a type attribute for all node types.
+-#
+-allow $1 node_type:node { tcp_send udp_send rawip_send };
+-allow $1 node_type:node { tcp_recv udp_recv rawip_recv };
+-
+-#
+-# Allow the domain to send to or receive from any port.
+-# port_type is a type attribute for all port types.
+-#
+-allow $1 port_type:{ tcp_socket udp_socket } { send_msg recv_msg };
+-
+-#
+-# Allow the domain to send NFS client requests via the socket
+-# created by mount.
+-#
+-allow $1 mount_t:udp_socket rw_socket_perms;
+-
+-#
+-# Bind to the default port type.
+-# Other port types must be separately authorized.
+-#
+-#allow $1 port_t:udp_socket name_bind;
+-#allow $1 port_t:tcp_socket name_bind;
+-
+-# XXX Allow binding to any node type.  Remove once
+-# individual rules have been added to all domains that 
+-# bind sockets. 
+-allow $1 node_type: { tcp_socket udp_socket } node_bind;
+-#
+-# Allow access to network files including /etc/resolv.conf
+-#
+-allow $1 net_conf_t:file r_file_perms;
+-')dnl end can_network definition
+-
+-#################################
+-#
+ # can_sysctl(domain)
+ #
+ # Permissions for modifying sysctl parameters.
+@@ -271,6 +213,7 @@
+ define(`daemon_core_rules', `
+ type $1_t, domain, privlog, daemon $2;
+ type $1_exec_t, file_type, sysadmfile, exec_type;
++dontaudit $1_t self:capability sys_tty_config;
+ 
+ role system_r types $1_t;
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/network_macros.te policy-1.19.1/macros/network_macros.te
+--- nsapolicy/macros/network_macros.te	1969-12-31 19:00:00.000000000 -0500
++++ policy-1.19.1/macros/network_macros.te	2004-11-11 21:20:11.640753857 -0500
+@@ -0,0 +1,110 @@
++#################################
++#
++# can_network(domain)
++#
++# Permissions for accessing the network.
++# See types/network.te for the network types.
++# See net_contexts for security contexts for network entities.
++#
++define(`base_can_network',`
++#
++# Allow the domain to create and use $2 sockets.
++# Other kinds of sockets must be separately authorized for use.
++allow $1 self:$2_socket connected_socket_perms;
++
++#
++# Allow the domain to send or receive using any network interface.
++# netif_type is a type attribute for all network interface types.
++#
++allow $1 netif_type:netif { $2_send rawip_send };
++allow $1 netif_type:netif { $2_recv rawip_recv };
++
++#
++# Allow the domain to send to or receive from any node.
++# node_type is a type attribute for all node types.
++#
++allow $1 node_type:node { $2_send rawip_send };
++allow $1 node_type:node { $2_recv rawip_recv };
++
++#
++# Allow the domain to send to or receive from any port.
++# port_type is a type attribute for all port types.
++#
++ifelse($3, `', `
++allow $1 port_type:$2_socket { send_msg recv_msg };
++', `
++allow $1 $3:$2_socket { send_msg recv_msg };
++')
++
++# XXX Allow binding to any node type.  Remove once
++# individual rules have been added to all domains that 
++# bind sockets. 
++allow $1 node_type:$2_socket node_bind;
++#
++# Allow access to network files including /etc/resolv.conf
++#
++allow $1 net_conf_t:file r_file_perms;
++')dnl end can_network definition
++
++#################################
++#
++# can_tcp_network(domain)
++#
++# Permissions for accessing a tcp network.
++# See types/network.te for the network types.
++# See net_contexts for security contexts for network entities.
++#
++define(`can_tcp_network',`
++base_can_network($1, tcp, `$2')
++allow $1 self:tcp_socket { listen accept };
++')
++
++#################################
++#
++# can_udp_network(domain)
++#
++# Permissions for accessing a udp network.
++# See types/network.te for the network types.
++# See net_contexts for security contexts for network entities.
++#
++define(`can_udp_network',`
++base_can_network($1, udp, `$2')
++')
++
++#################################
++#
++# can_network(domain)
++#
++# Permissions for accessing the network.
++# See types/network.te for the network types.
++# See net_contexts for security contexts for network entities.
++#
++define(`can_network',`
++
++can_tcp_network($1, `$2')
++can_udp_network($1, `$2')
++
++#
++# Allow the domain to send NFS client requests via the socket
++# created by mount.
++#
++allow $1 mount_t:udp_socket rw_socket_perms;
++
++')dnl end can_network definition
++
++define(`can_resolve',`
++can_udp_network($1, `dns_port_t')
++allow $1 self:udp_socket connect;
++')
++define(`can_ldap',`
++can_tcp_network($1, `ldap_port_t')
++allow $1 self:tcp_socket connect;
++')
++define(`can_kerberos',`
++if (allow_kerberos) {
++can_network($1, `kerberos_port_t')
++allow $1 self:{ udp_socket tcp_socket } connect;
++dontaudit $1 krb5_conf_t:file write;
++allow $1 krb5_conf_t:file { getattr read };
++}
++')
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/apache_macros.te policy-1.19.1/macros/program/apache_macros.te
+--- nsapolicy/macros/program/apache_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/apache_macros.te	2004-11-11 21:20:11.641753744 -0500
+@@ -3,7 +3,7 @@
+ 
+ #This type is for webpages
+ #
+-type httpd_$1_content_t, file_type, homedirfile, httpdcontent, sysadmfile;
++type httpd_$1_content_t, file_type, ifelse($1, sys, `', `$1_homedirfile, ') httpdcontent, sysadmfile;
+ ifelse($1, sys, `
+ typealias httpd_sys_content_t alias httpd_sysadm_content_t;
+ ')
+@@ -17,7 +17,7 @@
+ type httpd_$1_script_exec_t, file_type, sysadmfile;
+ 
+ # Type that CGI scripts run as
+-type httpd_$1_script_t, domain, privmail;
++type httpd_$1_script_t, domain, privmail, nscd_client_domain;
+ role system_r types httpd_$1_script_t;
+ 
+ if (httpd_enable_cgi) {
+@@ -91,7 +91,7 @@
+ #########################################################################
+ can_exec(httpd_$1_script_t, { bin_t shell_exec_t })
+ allow httpd_$1_script_t { bin_t sbin_t }:dir { getattr search };
+-allow httpd_$1_script_t bin_t:lnk_file read;
++allow httpd_$1_script_t { sbin_t bin_t }:lnk_file read;
+ allow httpd_$1_script_t etc_t:file { getattr read };
+ 
+ ############################################################################
+@@ -178,6 +178,6 @@
+ ############################################
+ # Allow scripts to append to http logs
+ #########################################
+-allow httpd_$1_script_t httpd_log_t:file append;
++allow httpd_$1_script_t httpd_log_t:file { getattr append };
+ 
+ ')
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/chkpwd_macros.te policy-1.19.1/macros/program/chkpwd_macros.te
+--- nsapolicy/macros/program/chkpwd_macros.te	2004-10-09 21:06:15.000000000 -0400
++++ policy-1.19.1/macros/program/chkpwd_macros.te	2004-11-11 21:20:11.641753744 -0500
+@@ -15,19 +15,26 @@
+ ifdef(`chkpwd.te', `
+ define(`chkpwd_domain',`
+ # Derived domain based on the calling user domain and the program.
+-type $1_chkpwd_t, domain, privlog, auth;
++type $1_chkpwd_t, domain, privlog, nscd_client_domain, auth;
+ 
+ # is_selinux_enabled
+ allow $1_chkpwd_t proc_t:file read;
+ can_getcon($1_chkpwd_t)
+ can_ypbind($1_chkpwd_t)
++can_kerberos($1_chkpwd_t)
++can_ldap($1_chkpwd_t)
++can_resolve($1_chkpwd_t)
+ # Transition from the user domain to this domain.
+ ifelse($1, system, `
+ domain_auto_trans(auth_chkpwd, chkpwd_exec_t, system_chkpwd_t)
+ role system_r types system_chkpwd_t;
+ dontaudit auth_chkpwd shadow_t:file { getattr read };
+ allow auth_chkpwd sbin_t:dir search;
+-dontaudit $1_chkpwd_t tty_device_t:chr_file rw_file_perms;
++dontaudit $1_chkpwd_t { user_tty_type tty_device_t }:chr_file rw_file_perms;
++can_ypbind(auth_chkpwd)
++can_kerberos(auth_chkpwd)
++can_ldap(auth_chkpwd)
++can_resolve(auth_chkpwd)
+ ', `
+ domain_auto_trans($1_t, chkpwd_exec_t, $1_chkpwd_t)
+ allow $1_t sbin_t:dir search;
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/crond_macros.te policy-1.19.1/macros/program/crond_macros.te
+--- nsapolicy/macros/program/crond_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/crond_macros.te	2004-11-11 21:20:11.642753632 -0500
+@@ -68,6 +68,7 @@
+ # This domain is granted permissions common to most domains.
+ can_network($1_crond_t)
+ can_ypbind($1_crond_t)
++allow $1_crond_t self:{ tcp_socket udp_socket } connect;
+ r_dir_file($1_crond_t, self)
+ allow $1_crond_t self:fifo_file rw_file_perms;
+ allow $1_crond_t self:unix_stream_socket create_stream_socket_perms;
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/gpg_macros.te policy-1.19.1/macros/program/gpg_macros.te
+--- nsapolicy/macros/program/gpg_macros.te	2004-11-05 23:24:17.000000000 -0500
++++ policy-1.19.1/macros/program/gpg_macros.te	2004-11-11 21:20:11.642753632 -0500
+@@ -19,7 +19,7 @@
+ define(`gpg_domain', `
+ # Derived domain based on the calling user domain and the program.
+ type $1_gpg_t, domain, privlog;
+-type $1_gpg_secret_t, file_type, homedirfile, sysadmfile;
++type $1_gpg_secret_t, file_type, $1_homedirfile, sysadmfile;
+ 
+ # Transition from the user domain to the derived domain.
+ domain_auto_trans($1_t, gpg_exec_t, $1_gpg_t)
+@@ -82,6 +82,7 @@
+ 
+ allow $1_gpg_t self:capability { ipc_lock setuid };
+ allow $1_gpg_t devtty_t:chr_file rw_file_perms;
++rw_dir_create_file($1_gpg_t, $1_homedirfile)
+ 
+ allow $1_gpg_t { etc_t usr_t }:dir r_dir_perms;
+ allow $1_gpg_t fs_t:filesystem getattr;
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/inetd_macros.te policy-1.19.1/macros/program/inetd_macros.te
+--- nsapolicy/macros/program/inetd_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/inetd_macros.te	2004-11-11 21:20:11.643753519 -0500
+@@ -43,8 +43,7 @@
+ allow $1_t home_root_t:dir search;
+ allow $1_t self:dir search;
+ allow $1_t self:file { getattr read };
+-allow $1_t krb5_conf_t:file r_file_perms;
+-dontaudit $1_t krb5_conf_t:file write;
++can_kerberos($1_t)
+ allow $1_t urandom_device_t:chr_file { getattr read };
+ type $1_port_t, port_type, reserved_port_type;
+ # Use sockets inherited from inetd.
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/irc_macros.te policy-1.19.1/macros/program/irc_macros.te
+--- nsapolicy/macros/program/irc_macros.te	2004-11-05 23:24:17.000000000 -0500
++++ policy-1.19.1/macros/program/irc_macros.te	2004-11-11 21:20:11.643753519 -0500
+@@ -20,7 +20,7 @@
+ define(`irc_domain',`
+ # Derived domain based on the calling user domain and the program.
+ type $1_irc_t, domain;
+-type $1_home_irc_t, file_type, homedirfile, sysadmfile;
++type $1_home_irc_t, file_type, $1_homedirfile, sysadmfile;
+ type $1_irc_exec_t, file_type, sysadmfile;
+ 
+ ifdef(`slocate.te', `
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/lockdev_macros.te policy-1.19.1/macros/program/lockdev_macros.te
+--- nsapolicy/macros/program/lockdev_macros.te	1969-12-31 19:00:00.000000000 -0500
++++ policy-1.19.1/macros/program/lockdev_macros.te	2004-11-11 21:20:11.644753406 -0500
+@@ -0,0 +1,46 @@
++#
++# Macros for lockdev domains.
++#
++
++#
++# Authors:  Daniel Walsh <dwalsh@redhat.com> 
++#
++
++#
++# lockdev_domain(domain_prefix)
++#
++# Define a derived domain for the lockdev programs when executed
++# by a user domain.
++#
++# The type declaration for the executable type for this program is
++# provided separately in domains/program/lockdev.te. 
++#
++undefine(`lockdev_domain')
++define(`lockdev_domain',`
++# Derived domain based on the calling user domain and the program
++type $1_lockdev_t, domain, privlog;
++# Transition from the user domain to the derived domain.
++domain_auto_trans($1_t, lockdev_exec_t, $1_lockdev_t)
++
++# The user role is authorized for this domain.
++role $1_r types $1_lockdev_t;
++# Use capabilities.
++allow $1_lockdev_t self:capability setgid;
++allow $1_lockdev_t $1_t:process signull;
++
++allow $1_lockdev_t var_t:dir search;
++
++lock_domain($1_lockdev)
++
++r_dir_file($1_lockdev_t, lockfile)
++
++allow $1_lockdev_t device_t:dir search;
++allow $1_lockdev_t null_device_t:chr_file rw_file_perms;
++allow $1_lockdev_t { $1_tty_device_t $1_devpts_t }:chr_file rw_file_perms;
++dontaudit $1_lockdev_t root_t:dir search;
++
++uses_shlib($1_lockdev_t)
++allow $1_lockdev_t fs_t:filesystem getattr;
++
++')dnl end macro definition
++
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/lpr_macros.te policy-1.19.1/macros/program/lpr_macros.te
+--- nsapolicy/macros/program/lpr_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/lpr_macros.te	2004-11-11 21:20:11.645753293 -0500
+@@ -35,6 +35,7 @@
+ 
+ # This domain is granted permissions common to most domains (including can_net)
+ can_network($1_lpr_t)
++allow $1_lpr_t self:tcp_socket connect;
+ can_ypbind($1_lpr_t)
+ 
+ # Use capabilities.
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/mount_macros.te policy-1.19.1/macros/program/mount_macros.te
+--- nsapolicy/macros/program/mount_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/mount_macros.te	2004-11-11 21:20:11.645753293 -0500
+@@ -81,7 +81,7 @@
+ # mount domain. 
+ #
+ define(`mount_loopback_privs',`
+-type $1_$2_source_t, file_type, sysadmfile, homedirfile;
++type $1_$2_source_t, file_type, sysadmfile, $1_homedirfile;
+ allow $1_t $1_$2_source_t:file create_file_perms;
+ allow $1_t $1_$2_source_t:file { relabelto relabelfrom };
+ allow $2_t $1_$2_source_t:file rw_file_perms;
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/mozilla_macros.te policy-1.19.1/macros/program/mozilla_macros.te
+--- nsapolicy/macros/program/mozilla_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/mozilla_macros.te	2004-11-11 21:20:11.646753180 -0500
+@@ -17,6 +17,7 @@
+ #
+ define(`mozilla_domain',`
+ x_client_domain($1, mozilla, `, web_client_domain, privlog')
++allow $1_mozilla_t self:{ tcp_socket udp_socket } connect;
+ 
+ allow $1_mozilla_t sound_device_t:chr_file rw_file_perms;
+ 
+@@ -78,7 +79,7 @@
+ #
+ if (mozilla_readhome || mozilla_writehome) {
+ r_dir_file($1_mozilla_t, $1_home_t)
+-dontaudit $1_mozilla_t homedirfile:{ file dir } getattr;
++dontaudit $1_mozilla_t $1_homedirfile:{ file dir } getattr;
+ file_type_auto_trans($1_mozilla_t, tmp_t, $1_tmp_t)
+ } else {
+ file_type_auto_trans($1_mozilla_t, tmp_t, $1_mozilla_rw_t)
+@@ -112,6 +113,7 @@
+ # Eliminate errors from scanning with the 
+ #
+ dontaudit $1_mozilla_t file_type:dir getattr;
++allow $1_mozilla_t self:sem create_sem_perms;
+ 
+ ifdef(`xdm.te', `
+ allow $1_mozilla_t xdm_t:fifo_file { write read };
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/mta_macros.te policy-1.19.1/macros/program/mta_macros.te
+--- nsapolicy/macros/program/mta_macros.te	2004-11-05 23:24:17.000000000 -0500
++++ policy-1.19.1/macros/program/mta_macros.te	2004-11-11 21:20:11.646753180 -0500
+@@ -20,7 +20,7 @@
+ undefine(`mail_domain')
+ define(`mail_domain',`
+ # Derived domain based on the calling user domain and the program.
+-type $1_mail_t, domain, privlog, user_mail_domain;
++type $1_mail_t, domain, privlog, user_mail_domain, nscd_client_domain;
+ 
+ ifdef(`sendmail.te', `
+ sendmail_user_domain($1)
+@@ -37,6 +37,7 @@
+ can_ypbind($1_mail_t)
+ allow $1_mail_t self:unix_dgram_socket create_socket_perms;
+ allow $1_mail_t self:unix_stream_socket create_socket_perms;
++allow $1_mail_t self:{ tcp_socket udp_socket } connect;
+ 
+ read_locale($1_mail_t)
+ read_sysctl($1_mail_t)
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/newrole_macros.te policy-1.19.1/macros/program/newrole_macros.te
+--- nsapolicy/macros/program/newrole_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/newrole_macros.te	2004-11-11 21:20:11.647753068 -0500
+@@ -34,9 +34,6 @@
+ allow $1_t bin_t:lnk_file read;
+ allow $1_t shell_exec_t:file r_file_perms;
+ 
+-can_ypbind($1_t)
+-dontaudit $1_t krb5_conf_t:file write;
+-allow $1_t krb5_conf_t:file { getattr read };
+ allow $1_t urandom_device_t:chr_file { getattr read };
+ 
+ # Allow $1_t to transition to user domains.
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/screen_macros.te policy-1.19.1/macros/program/screen_macros.te
+--- nsapolicy/macros/program/screen_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/screen_macros.te	2004-11-11 21:20:11.648752955 -0500
+@@ -22,7 +22,7 @@
+ define(`screen_domain',`
+ # Derived domain based on the calling user domain and the program.
+ type $1_screen_t, domain, privlog, privfd;
+-type $1_home_screen_t, file_type, homedirfile, sysadmfile;
++type $1_home_screen_t, file_type, $1_homedirfile, sysadmfile;
+ 
+ # Transition from the user domain to this domain.
+ domain_auto_trans($1_t, screen_exec_t, $1_screen_t)
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/spamassassin_macros.te policy-1.19.1/macros/program/spamassassin_macros.te
+--- nsapolicy/macros/program/spamassassin_macros.te	2004-10-13 22:41:58.000000000 -0400
++++ policy-1.19.1/macros/program/spamassassin_macros.te	2004-11-11 21:20:11.648752955 -0500
+@@ -80,7 +80,7 @@
+ dontaudit $1_spamassassin_t { sysctl_t sysctl_kernel_t }:dir search;
+ 
+ # The type of ~/.spamassassin
+-type $1_home_spamassassin_t, file_type, homedirfile, sysadmfile;
++type $1_home_spamassassin_t, file_type, $1_homedirfile, sysadmfile;
+ create_dir_file($1_t, $1_home_spamassassin_t)
+ allow $1_t $1_home_spamassassin_t:notdevfile_class_set { relabelfrom relabelto };
+ allow $1_t $1_home_spamassassin_t:dir { relabelfrom relabelto };
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/ssh_macros.te policy-1.19.1/macros/program/ssh_macros.te
+--- nsapolicy/macros/program/ssh_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/ssh_macros.te	2004-11-11 21:20:11.649752842 -0500
+@@ -22,7 +22,7 @@
+ define(`ssh_domain',`
+ # Derived domain based on the calling user domain and the program.
+ type $1_ssh_t, domain, privlog, nscd_client_domain;
+-type $1_home_ssh_t, file_type, homedirfile, sysadmfile;
++type $1_home_ssh_t, file_type, $1_homedirfile, sysadmfile;
+ 
+ ifdef(`automount.te', `
+ allow $1_ssh_t autofs_t:dir { search getattr };
+@@ -84,6 +84,7 @@
+ # to access the network.
+ can_network($1_ssh_t)
+ can_ypbind($1_ssh_t)
++allow $1_ssh_t self:{ tcp_socket udp_socket } connect;
+ 
+ # Use capabilities.
+ allow $1_ssh_t self:capability { setuid setgid dac_override dac_read_search };
+@@ -157,8 +158,7 @@
+ allow $1_ssh_t xdm_xserver_t:shm r_shm_perms;
+ allow $1_ssh_t xdm_xserver_t:fd use;
+ allow $1_ssh_t xdm_xserver_tmpfs_t:file read;
+-allow $1_ssh_t krb5_conf_t:file { getattr read };
+-dontaudit $1_ssh_t krb5_conf_t:file write;
++can_kerberos($1_ssh_t)
+ ')dnl end if xdm.te
+ ')dnl end macro definition
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/su_macros.te policy-1.19.1/macros/program/su_macros.te
+--- nsapolicy/macros/program/su_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/su_macros.te	2004-11-11 21:20:11.650752729 -0500
+@@ -87,8 +87,7 @@
+ # Write to utmp.
+ allow $1_su_t { var_t var_run_t }:dir search;
+ allow $1_su_t initrc_var_run_t:file rw_file_perms;
+-dontaudit $1_su_t krb5_conf_t:file write;
+-allow $1_su_t krb5_conf_t:file { getattr read };
++can_kerberos($1_su_t)
+ ') dnl end su_restricted_domain
+ 
+ define(`su_mini_domain', `
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/tvtime_macros.te policy-1.19.1/macros/program/tvtime_macros.te
+--- nsapolicy/macros/program/tvtime_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/tvtime_macros.te	2004-11-11 21:20:11.650752729 -0500
+@@ -19,7 +19,7 @@
+ ifdef(`tvtime.te', `
+ define(`tvtime_domain',`
+ # Derived domain based on the calling user domain and the program.
+-type $1_home_tvtime_t, file_type, homedirfile, sysadmfile;
++type $1_home_tvtime_t, file_type, $1_homedirfile, sysadmfile;
+ 
+ x_client_domain($1, tvtime)
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/userhelper_macros.te policy-1.19.1/macros/program/userhelper_macros.te
+--- nsapolicy/macros/program/userhelper_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/userhelper_macros.te	2004-11-11 21:20:11.651752616 -0500
+@@ -123,7 +123,6 @@
+ ')
+ allow $1_userhelper_t sysctl_t:dir search;
+ role system_r types $1_userhelper_t;
+-allow $1_userhelper_t krb5_conf_t:file { getattr read };
+ r_dir_file($1_userhelper_t, nfs_t)
+ 
+ ifdef(`xdm.te', `
+@@ -139,6 +138,9 @@
+ domain_auto_trans($1_userhelper_t, xauth_exec_t, $1_xauth_t)
+ allow $1_userhelper_t $1_home_xauth_t:file { getattr read };
+ ')
++
++ifdef(`pamconsole.te', `
+ allow $1_userhelper_t pam_var_console_t:dir { search };
++')
+ 
+ ')dnl end userhelper macro
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/vmware_macros.te policy-1.19.1/macros/program/vmware_macros.te
+--- nsapolicy/macros/program/vmware_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/vmware_macros.te	2004-11-11 21:20:11.651752616 -0500
+@@ -23,10 +23,10 @@
+ role $1_r types $1_vmware_t;
+ 
+ # The user file type is for files created when the user is running VMWare
+-type $1_vmware_file_t, homedirfile, file_type, sysadmfile;
++type $1_vmware_file_t, $1_homedirfile, file_type, sysadmfile;
+ 
+ # The user file type for the VMWare configuration files
+-type $1_vmware_conf_t, homedirfile, file_type, sysadmfile;
++type $1_vmware_conf_t, $1_homedirfile, file_type, sysadmfile;
+ 
+ # for compatibility with older policy versions
+ typealias $1_vmware_t alias vmware_$1_t;
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/xauth_macros.te policy-1.19.1/macros/program/xauth_macros.te
+--- nsapolicy/macros/program/xauth_macros.te	2004-11-05 23:24:17.000000000 -0500
++++ policy-1.19.1/macros/program/xauth_macros.te	2004-11-11 21:20:11.652752504 -0500
+@@ -20,7 +20,7 @@
+ define(`xauth_domain',`
+ # Derived domain based on the calling user domain and the program.
+ type $1_xauth_t, domain;
+-type $1_home_xauth_t, file_type, homedirfile, sysadmfile;
++type $1_home_xauth_t, file_type, $1_homedirfile, sysadmfile;
+ 
+ ifdef(`slocate.te', `
+ allow $1_locate_t $1_home_xauth_t:file { getattr read };
+@@ -48,6 +48,7 @@
+ ')
+ 
+ allow $1_xauth_t privfd:fd use;
++allow $1_xauth_t ptmx_t:chr_file { read write };
+ 
+ # allow ps to show xauth
+ allow $1_t $1_xauth_t:dir { search getattr read };
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/x_client_macros.te policy-1.19.1/macros/program/x_client_macros.te
+--- nsapolicy/macros/program/x_client_macros.te	2004-11-05 23:24:17.000000000 -0500
++++ policy-1.19.1/macros/program/x_client_macros.te	2004-11-11 21:20:11.653752391 -0500
+@@ -25,9 +25,9 @@
+ # Derived domain based on the calling user domain and the program.
+ type $1_$2_t, domain $3;
+ # Type for files that are writeable by this domain.
+-type $1_$2_rw_t, file_type, homedirfile, sysadmfile, tmpfile;
++type $1_$2_rw_t, file_type, $1_homedirfile, sysadmfile, tmpfile;
+ # Type for files that are read-only for this domain
+-type $1_$2_ro_t, file_type, homedirfile, sysadmfile;
++type $1_$2_ro_t, file_type, $1_homedirfile, sysadmfile;
+ 
+ # Transition from the user domain to the derived domain.
+ ifelse($2, games, `
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/xserver_macros.te policy-1.19.1/macros/program/xserver_macros.te
+--- nsapolicy/macros/program/xserver_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/program/xserver_macros.te	2004-11-11 21:20:11.653752391 -0500
+@@ -27,10 +27,11 @@
+ ifdef(`distro_redhat', `
+ type $1_xserver_t, domain, privlog, privmem, privmodule, nscd_client_domain;
+ allow $1_xserver_t sysctl_modprobe_t:file { getattr read };
++ifdef(`rpm.te', `
+ allow $1_xserver_t rpm_t:shm { unix_read unix_write read write associate getattr };
+ allow $1_xserver_t rpm_tmpfs_t:file { read write };
+ allow $1_xserver_t rpm_t:fd use;
+-
++')
+ ', `
+ type $1_xserver_t, domain, privlog, privmem, nscd_client_domain;
+ ')
+@@ -51,6 +52,7 @@
+ uses_shlib($1_xserver_t)
+ can_network($1_xserver_t)
+ can_ypbind($1_xserver_t)
++allow $1_xserver_t self:udp_socket connect;
+ allow $1_xserver_t xserver_port_t:tcp_socket name_bind;
+ 
+ # for access within the domain
+@@ -148,6 +150,7 @@
+ allow xdm_xserver_t xdm_t:process signal;
+ allow xdm_xserver_t xdm_t:shm rw_shm_perms;
+ allow xdm_t xdm_xserver_t:shm rw_shm_perms;
++dontaudit xdm_xserver_t sysadm_t:shm { unix_read unix_write };
+ ')
+ ', `
+ allow $1_t xdm_xserver_tmp_t:dir r_dir_perms;
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/program/ypbind_macros.te policy-1.19.1/macros/program/ypbind_macros.te
+--- nsapolicy/macros/program/ypbind_macros.te	2004-10-13 22:41:58.000000000 -0400
++++ policy-1.19.1/macros/program/ypbind_macros.te	2004-11-11 21:20:11.654752278 -0500
+@@ -4,12 +4,16 @@
+ can_network($1)
+ r_dir_file($1,var_yp_t)
+ allow $1 { reserved_port_t port_t }:{ tcp_socket udp_socket } name_bind;
++allow $1 self:{ tcp_socket udp_socket } connect;
++dontaudit $1 self:capability net_bind_service;
+ ')
+ 
+ define(`can_ypbind', `
+ ifdef(`ypbind.te', `
+ if (allow_ypbind) {
+ uncond_can_ypbind($1)
++} else {
++dontaudit $1 var_yp_t:dir search;
+ }
+ ') dnl ypbind.te
+ ') dnl can_ypbind
+diff --exclude-from=exclude -N -u -r nsapolicy/macros/user_macros.te policy-1.19.1/macros/user_macros.te
+--- nsapolicy/macros/user_macros.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/macros/user_macros.te	2004-11-11 21:20:11.655752165 -0500
+@@ -56,8 +56,9 @@
+ # user domains.
+ ifdef(`apache.te', `apache_domain($1)')
+ ifdef(`slocate.te', `locate_domain($1)')
++ifdef(`lockdev.te', `lockdev_domain($1)')
+ 
+-allow $1_t krb5_conf_t:file { getattr read };
++can_kerberos($1_t)
+ # allow port_t name binding for UDP because it is not very usable otherwise
+ allow $1_t port_t:udp_socket name_bind;
+ 
+@@ -123,9 +124,14 @@
+ undefine(`full_user_role')
+ define(`full_user_role', `
+ 
++# certain apps ask for this priv kdesu, fetchmail
++# dac controls force the user to only lower priority
++allow $1_t self:process setrlimit;
++
+ # user_t/$1_t is an unprivileged users domain.
+ type $1_t, domain, userdomain, unpriv_userdomain, web_client_domain, nscd_client_domain, privfd;
+ 
++attribute $1_homedirfile;
+ # Grant read/search permissions to some of /proc.
+ allow $1_t proc_t:dir r_dir_perms;
+ allow $1_t proc_t:{ file lnk_file } r_file_perms;
+@@ -142,11 +148,6 @@
+ # Stat lost+found.
+ allow $1_t lost_found_t:dir getattr;
+ 
+-# Read the /tmp directory and any /tmp files with the base type.
+-# Temporary files created at runtime will typically use derived types.
+-allow $1_t tmp_t:dir r_dir_perms;
+-allow $1_t tmp_t:{ file lnk_file } r_file_perms;
+-
+ # Read /var, /var/spool, /var/run.
+ allow $1_t var_t:dir r_dir_perms;
+ allow $1_t var_t:notdevfile_class_set r_file_perms;
+@@ -224,15 +225,17 @@
+ allow $1_mount_t iso9660_t:filesystem relabelfrom;
+ allow $1_mount_t removable_t:filesystem { mount relabelto };
+ allow $1_mount_t removable_t:dir mounton;
++ifdef(`xdm.te', `
+ allow $1_mount_t xdm_t:fd use;
+ allow $1_mount_t xdm_t:fifo_file write;
+ ')
++')
+ 
+ #
+ # Rules used to associate a homedir as a mountpoint
+ #
+ allow $1_home_t $1_home_t:filesystem associate;
+-allow homedirfile $1_home_t:filesystem associate;
++allow $1_homedirfile $1_home_t:filesystem associate;
+ ')
+ 
+ undefine(`in_user_role')
+diff --exclude-from=exclude -N -u -r nsapolicy/net_contexts policy-1.19.1/net_contexts
+--- nsapolicy/net_contexts	2004-11-09 13:35:11.000000000 -0500
++++ policy-1.19.1/net_contexts	2004-11-11 21:20:11.656752052 -0500
+@@ -113,7 +113,6 @@
+ portcon tcp 631 system_u:object_r:ipp_port_t
+ portcon udp 631 system_u:object_r:ipp_port_t
+ ')
+-ifdef(`kerberos.te', `
+ portcon tcp 88 system_u:object_r:kerberos_port_t
+ portcon udp 88 system_u:object_r:kerberos_port_t
+ portcon tcp 749 system_u:object_r:kerberos_admin_port_t
+@@ -121,7 +120,6 @@
+ portcon udp 750 system_u:object_r:kerberos_port_t
+ portcon tcp 4444 system_u:object_r:kerberos_master_port_t
+ portcon udp 4444 system_u:object_r:kerberos_master_port_t
+-')
+ ifdef(`spamd.te', `portcon tcp 783 system_u:object_r:spamd_port_t')
+ ifdef(`rsync.te', `
+ portcon tcp 873 system_u:object_r:rsync_port_t
+diff --exclude-from=exclude -N -u -r nsapolicy/targeted/domains/unconfined.te policy-1.19.1/targeted/domains/unconfined.te
+--- nsapolicy/targeted/domains/unconfined.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/targeted/domains/unconfined.te	2004-11-11 21:20:11.656752052 -0500
+@@ -42,4 +42,10 @@
+ # Support NFS home directories
+ bool use_nfs_home_dirs false;
+ 
++# Allow system to run with NIS
++bool allow_ypbind false;
++
++# Allow system to run with Kerberos
++bool allow_kerberos false;
++
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/tunables/distro.tun policy-1.19.1/tunables/distro.tun
+--- nsapolicy/tunables/distro.tun	2004-08-20 13:57:29.000000000 -0400
++++ policy-1.19.1/tunables/distro.tun	2004-11-11 21:20:11.657751940 -0500
+@@ -5,7 +5,7 @@
+ # appropriate ifdefs.
+ 
+ 
+-dnl define(`distro_redhat')
++define(`distro_redhat')
+ 
+ dnl define(`distro_suse')
+ 
+diff --exclude-from=exclude -N -u -r nsapolicy/tunables/tunable.tun policy-1.19.1/tunables/tunable.tun
+--- nsapolicy/tunables/tunable.tun	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/tunables/tunable.tun	2004-11-11 21:20:11.657751940 -0500
+@@ -1,27 +1,27 @@
+ # Allow users to execute the mount command
+-dnl define(`user_can_mount')
++define(`user_can_mount')
+ 
+ # Allow rpm to run unconfined.
+-dnl define(`unlimitedRPM')
++define(`unlimitedRPM')
+ 
+ # Allow privileged utilities like hotplug and insmod to run unconfined.
+-dnl define(`unlimitedUtils')
++define(`unlimitedUtils')
+ 
+ # Allow rc scripts to run unconfined, including any daemon
+ # started by an rc script that does not have a domain transition
+ # explicitly defined.
+-dnl define(`unlimitedRC')
++define(`unlimitedRC')
+ 
+ # Allow sysadm_t to directly start daemons
+ define(`direct_sysadm_daemon')
+ 
+ # Do not audit things that we know to be broken but which
+ # are not security risks
+-dnl define(`hide_broken_symptoms')
++define(`hide_broken_symptoms')
+ 
+ # Allow user_r to reach sysadm_r via su, sudo, or userhelper.
+ # Otherwise, only staff_r can do so.
+-dnl define(`user_canbe_sysadm')
++define(`user_canbe_sysadm')
+ 
+ # Allow xinetd to run unconfined, including any services it starts
+ # that do not have a domain transition explicitly defined.
+diff --exclude-from=exclude -N -u -r nsapolicy/types/network.te policy-1.19.1/types/network.te
+--- nsapolicy/types/network.te	2004-11-09 13:35:13.000000000 -0500
++++ policy-1.19.1/types/network.te	2004-11-11 21:20:11.658751827 -0500
+@@ -64,6 +64,13 @@
+ type mail_port_t, port_type;
+ 
+ #
++# Ports used to communicate with kerberos server
++#
++type kerberos_port_t, port_type, reserved_port_type;
++type kerberos_admin_port_t, port_type, reserved_port_type;
++type kerberos_master_port_t, port_type;
++
++#
+ # port_t is the default type of INET port numbers.
+ # The *_port_t types are used for specific port
+ # numbers in net_contexts or net_contexts.mls.

@@ -1,0 +1,7 @@
+httpd_enable_cgi=1
+httpd_enable_homedirs=1
+httpd_ssi_exec=1
+named_write_master_zones=0
+httpd_unified=1
+allow_ypbind=0
+allow_kerberos=1
