@@ -1,8 +1,8 @@
-%define type targeted
+%define	type	targeted
 Summary:	SELinux %{type} policy configuration
 Summary(pl):	Konfiguracja polityki %{type} SELinuksa
 Name:		selinux-policy-%{type}
-Version:	1.17.16
+Version:	1.16
 Release:	1
 License:	GPL
 Group:		Base
@@ -82,15 +82,15 @@ polityki. Zawiera policy.conf oraz wszystkie Makefile, makra i pliki
 mv domains/misc/*.te domains/misc/unused
 mv domains/program/*.te domains/program/unused/
 rm domains/*.te
-for i in nscd.te apache.te dhcpd.te named.te  ntpd.te  portmap.te snmpd.te squid.te syslogd.te; do
+for i in nscd.te apache.te dhcpd.te named.te ntpd.te portmap.te snmpd.te squid.te syslogd.te; do
 mv domains/program/unused/$i domains/program/
 done
 rm -rf domains/program/unused
 rm -rf domains/misc/used
 cp -R %{type}/* .
-echo "define(\`targeted_policy')"  > tunables/tunable.tun
-echo "define(\`allow_ypbind')"  >> tunables/tunable.tun
-echo "define(\`nscd_all_connect')"  >> tunables/tunable.tun
+echo "define(\`targeted_policy')" > tunables/tunable.tun
+echo "define(\`allow_ypbind')" >> tunables/tunable.tun
+echo "define(\`nscd_all_connect')" >> tunables/tunable.tun
 %{__make} policy
 
 %install
@@ -145,15 +145,15 @@ exit 0
 
 %post sources
 if [ -x /usr/bin/selinuxenabled ]; then
-   make -W /etc/selinux/%{type}/src/policy/users \
-        -C /etc/selinux/%{type}/src/policy > /dev/null 2>&1
-   if [ -f /etc/selinux/config ]; then
-	. /etc/selinux/config
-	if [ "${SELINUXTYPE}" = "%{type}" ]; then
-	   /usr/bin/selinuxenabled && [ -e /selinux/policyvers ] && \
-	   make -C /etc/selinux/%{type}/src/policy load
+	make -W /etc/selinux/%{type}/src/policy/users \
+		-C /etc/selinux/%{type}/src/policy > /dev/null 2>&1
+	if [ -f /etc/selinux/config ]; then
+		. /etc/selinux/config
+		if [ "${SELINUXTYPE}" = "%{type}" ]; then
+			/usr/bin/selinuxenabled && [ -e /selinux/policyvers ] \
+				&& make -C /etc/selinux/%{type}/src/policy load
+		fi
 	fi
-   fi
 fi
 exit 0
 
