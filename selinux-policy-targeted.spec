@@ -38,7 +38,7 @@ configuration files.
 Security-enhanced Linux jest poprawk± j±dra Linuksa i wielu
 aplikacji u¿ytkowych o funkcjach podwy¿szonego bezpieczeñstwa.
 Zaprojektowany jest tak, aby w prosty sposób ukazaæ znaczenie
-mandatowej kontroli dostêpu dla spo³eczno¶ci linuksowej. Ukazuje
+obowi±zkowej kontroli dostêpu dla spo³eczno¶ci linuksowej. Ukazuje
 równie¿ jak tak± kontrolê mo¿na dodaæ do istniej±cego systemu typu
 Linux. J±dro SELinux zawiera nowe sk³adniki architektury pierwotnie
 opracowane w celu ulepszenia bezpieczeñstwa systemu operacyjnego
