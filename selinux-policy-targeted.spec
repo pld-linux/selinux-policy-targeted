@@ -1,5 +1,6 @@
 %define type targeted
 Summary:	SELinux %{type} policy configuration
+Summary(pl):	Konfiguracja polityki %{type} SELinuksa
 Name:		selinux-policy-%{type}
 Version:	1.17.16
 Release:	1
@@ -9,46 +10,67 @@ Source0:	http://www.nsa.gov/selinux/archives/policy-%{version}.tgz
 Source1:	%{name}-booleans
 Patch0:		policy-%{type}.patch
 Patch1:		policy-20040915.patch
-BuildArch:	noarch
 BuildRequires:	checkpolicy >= 1.16.3
 BuildRequires:	m4
 BuildRequires:	policycoreutils >= 1.17.2-1
 BuildRequires:	python
 Obsoletes:	policy
+BuildArch:	noarch
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
-Security-enhanced Linux is a patch of the LinuxÂ® kernel and a number
+Security-enhanced Linux is a patch of the Linux kernel and a number
 of utilities with enhanced security functionality designed to add
 mandatory access controls to Linux. The Security-enhanced Linux kernel
 contains new architectural components originally developed to improve
 the security of the Flask operating system. These architectural
 components provide general support for the enforcement of many kinds
 of mandatory access control policies, including those based on the
-concepts of Type EnforcementÂ®, Role-based Access Control, and
+concepts of Type Enforcement, Role-based Access Control, and
 Multi-level Security.
 
 This package contains the SELinux example policy configuration along
 with the Flask configuration information and the application
 configuration files.
 
-%package	sources
+%description -l pl
+Security-enhanced Linux jest poprawk± j±dra Linuksa i wielu
+aplikacji u¿ytkowych o funkcjach podwy¿szonego bezpieczeñstwa.
+Zaprojektowany jest tak, aby w prosty sposób ukazaæ znaczenie
+mandatowej kontroli dostêpu dla spo³eczno¶ci Linuksowej. Ukazuje
+równie¿ jak tak± kontrolê mo¿na dodaæ do istniej±cego systemu typu
+Linux. J±dro SELinux zawiera nowe sk³adniki architektury pierwotnie
+opracowane w celu ulepszenia bezpieczeñstwa systemu operacyjnego
+Flask. Te elementy zapewniaj± ogólne wsparcie we wdra¿aniu wielu typów
+polityk mandatowej kontroli dostêpu, w³±czaj±c te wzorowane na: Type
+Enforcement, kontroli dostêpu opartej na rolach i zabezpieczeniach
+wielopoziomowych.
+
+Ten pakiet zawiera przyk³adow± konfiguracjê polityki dla SELinuksa
+wraz z informacjami o konfiguracji Flask oraz plikami konfiguracyjnymi
+aplikacji.
+
+%package sources
 Summary:	SELinux example policy configuration source files
+Summary(pl):	Pliki ¼ród³owe przyk³adowej konfiguracji polityki SELinuksa
 Group:		Base
+Requires:	%{name} = %{version}-%{release}
 Requires:	m4
 Requires:	make
 Requires:	checkpolicy >= 1.16
 Requires:	policycoreutils >= 1.16
-Requires:	selinux-policy-%{type} = %{version}-%{release}
 Requires:	python
-BuildRequires:	checkpolicy >= 1.16
-BuildRequires:	policycoreutils >= 1.16
 Obsoletes:	policy-sources
 
 %description sources
 This subpackage includes the source files used to build the policy
 configuration. Includes policy.conf and the Makefiles, macros and
 source files for it.
+
+%description sources -l pl
+Ten podpakiet zawiera pliki ¼ród³owe u¿yte do zbudowania konfiguracji
+polityki. Zawiera policy.conf oraz wszystkie Makefile, makra i pliki
+¼ród³owe.
 
 %prep
 %setup -q -n policy-%{version}
@@ -77,14 +99,19 @@ rm -rf $RPM_BUILD_ROOT
 install -d $RPM_BUILD_ROOT/root
 install -d $RPM_BUILD_ROOT%{_sysconfdir}/selinux/%{type}/contexts/users
 install -d $RPM_BUILD_ROOT%{_sysconfdir}/selinux/%{type}/contexts/files
-%{__make} DESTDIR="$RPM_BUILD_ROOT" install
+%{__make} install \
+	DESTDIR=$RPM_BUILD_ROOT
 %{__make} clean
-%{__make} DESTDIR="$RPM_BUILD_ROOT" install-src
+%{__make} install-src \
+	DESTDIR=$RPM_BUILD_ROOT
 rm -rf "$RPM_BUILD_ROOT%{_sysconfdir}/selinux/%{type}/src/policy/targeted"
 rm -rf "$RPM_BUILD_ROOT%{_sysconfdir}/selinux/%{type}/src/policy"/*.spec
-install -m0700 %{SOURCE1} ${RPM_BUILD_ROOT}%{_sysconfdir}/selinux/%{type}/
+install -m0700 %{SOURCE1} $RPM_BUILD_ROOT%{_sysconfdir}/selinux/%{type}/
 touch $RPM_BUILD_ROOT%{_sysconfdir}/selinux/%{type}/src/policy/policy.conf
 touch $RPM_BUILD_ROOT%{_sysconfdir}/selinux/config
+
+%clean
+rm -rf $RPM_BUILD_ROOT
 
 %post
 if [ ! -f /etc/selinux/config ]; then
@@ -129,9 +156,6 @@ if [ -x /usr/bin/selinuxenabled ]; then
    fi
 fi
 exit 0
-
-%clean
-rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(644,root,root,755)
