@@ -2,12 +2,12 @@
 Summary:	SELinux %{type} policy configuration
 Summary(pl):	Konfiguracja polityki %{type} SELinuksa
 Name:		selinux-policy-%{type}
-Version:	1.16
-Release:	1
+Version:	1.18
+Release:	0.1
 License:	GPL
 Group:		Base
 Source0:	http://www.nsa.gov/selinux/archives/policy-%{version}.tgz
-# Source0-md5:	bd781c50d259f8c7610cbcebaaff884d
+# Source0-md5:	f57f96e0b64012c89045dff3ac9f0d54
 #Source1:	%{name}-booleans
 #Patch0:		policy-%{type}.patch
 #Patch1:		policy-20040915.patch
