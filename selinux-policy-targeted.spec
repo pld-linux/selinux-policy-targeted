@@ -129,8 +129,6 @@ SELINUX=enforcing
 #	targeted - Only targeted network daemons are protected.
 #	strict - Full SELinux protection.
 SELINUXTYPE=targeted " > /etc/selinux/config
-
-	fi
 fi
 ln -sf /etc/selinux/config /etc/sysconfig/selinux
 restorecon /etc/selinux/config 2> /dev/null
