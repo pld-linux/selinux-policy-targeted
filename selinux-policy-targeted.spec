@@ -7,9 +7,10 @@ Release:	1
 License:	GPL
 Group:		Base
 Source0:	http://www.nsa.gov/selinux/archives/policy-%{version}.tgz
-Source1:	%{name}-booleans
-Patch0:		policy-%{type}.patch
-Patch1:		policy-20040915.patch
+# Source0-md5:	bd781c50d259f8c7610cbcebaaff884d
+#Source1:	%{name}-booleans
+#Patch0:		policy-%{type}.patch
+#Patch1:		policy-20040915.patch
 BuildRequires:	checkpolicy >= 1.16.3
 BuildRequires:	m4
 BuildRequires:	policycoreutils >= 1.17.2-1
@@ -75,8 +76,8 @@ polityki. Zawiera policy.conf oraz wszystkie Makefile, makra i pliki
 %prep
 %setup -q -n policy-%{version}
 # Change strict to targeted
-%patch -p1
-%patch1 -p1
+#%%patch -p1
+#%%patch1 -p1
 
 %build
 mv domains/misc/*.te domains/misc/unused
