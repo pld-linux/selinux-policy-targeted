@@ -8,7 +8,7 @@ License:	GPL
 Group:		Base
 # Source0:	http://www.nsa.gov/selinux/archives/policy-%{version}.tgz
 Source0:	policy-%{version}.tgz
-# Source0-md5:	f57f96e0b64012c89045dff3ac9f0d54
+# Source0-md5:	92f9cbcced1af02e517db12e4c1c7545
 Source1:	booleans
 Patch0:		policy-%{type}.patch
 Patch1:		policy-20041109.patch
