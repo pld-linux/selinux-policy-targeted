@@ -12,6 +12,7 @@ Source0:	policy-%{version}.tgz
 Source1:	booleans
 Patch0:		policy-%{type}.patch
 Patch1:		policy-20041109.patch
+Patch2:		policy-pld.patch
 BuildRequires:	checkpolicy >= 1.18
 BuildRequires:	m4
 BuildRequires:	policycoreutils >= 1.18
@@ -78,6 +79,7 @@ polityki. Zawiera policy.conf oraz wszystkie Makefile, makra i pliki
 %setup -q -n policy-%{version}
 %patch0 -p1
 %patch1 -p1
+%patch2 -p1
 
 %build
 mv domains/misc/*.te domains/misc/unused
