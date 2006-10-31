@@ -159,7 +159,6 @@ exit 0
 
 %files
 %defattr(644,root,root,755)
-%dir %{_sysconfdir}/selinux
 %ghost %config(noreplace) %{_sysconfdir}/selinux/config
 %dir %{_sysconfdir}/selinux/%{type}
 %dir %{_sysconfdir}/selinux/%{type}/policy
