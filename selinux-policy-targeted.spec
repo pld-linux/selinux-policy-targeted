@@ -1,6 +1,6 @@
 %define	type	targeted
 Summary:	SELinux %{type} policy configuration
-Summary(pl.UTF-8):   Konfiguracja polityki %{type} SELinuksa
+Summary(pl.UTF-8):	Konfiguracja polityki %{type} SELinuksa
 Name:		selinux-policy-%{type}
 Version:	1.19.1
 Release:	0.1
@@ -55,7 +55,7 @@ aplikacji.
 
 %package sources
 Summary:	SELinux example policy configuration source files
-Summary(pl.UTF-8):   Pliki źródłowe przykładowej konfiguracji polityki SELinuksa
+Summary(pl.UTF-8):	Pliki źródłowe przykładowej konfiguracji polityki SELinuksa
 Group:		Base
 Requires:	%{name} = %{version}-%{release}
 Requires:	m4
