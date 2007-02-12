@@ -1,6 +1,6 @@
 %define	type	targeted
 Summary:	SELinux %{type} policy configuration
-Summary(pl):	Konfiguracja polityki %{type} SELinuksa
+Summary(pl.UTF-8):   Konfiguracja polityki %{type} SELinuksa
 Name:		selinux-policy-%{type}
 Version:	1.19.1
 Release:	0.1
@@ -36,26 +36,26 @@ This package contains the SELinux example policy configuration along
 with the Flask configuration information and the application
 configuration files.
 
-%description -l pl
-Security-enhanced Linux jest poprawk± j±dra Linuksa i wielu
-aplikacji u¿ytkowych o funkcjach podwy¿szonego bezpieczeñstwa.
-Zaprojektowany jest tak, aby w prosty sposób ukazaæ znaczenie
-obowi±zkowej kontroli dostêpu dla spo³eczno¶ci linuksowej. Ukazuje
-równie¿ jak tak± kontrolê mo¿na dodaæ do istniej±cego systemu typu
-Linux. J±dro SELinux zawiera nowe sk³adniki architektury pierwotnie
-opracowane w celu ulepszenia bezpieczeñstwa systemu operacyjnego
-Flask. Te elementy zapewniaj± ogólne wsparcie we wdra¿aniu wielu typów
-polityk mandatowej kontroli dostêpu, w³±czaj±c te wzorowane na: Type
-Enforcement, kontroli dostêpu opartej na rolach i zabezpieczeniach
+%description -l pl.UTF-8
+Security-enhanced Linux jest poprawkÄ… jÄ…dra Linuksa i wielu
+aplikacji uÅ¼ytkowych o funkcjach podwyÅ¼szonego bezpieczeÅ„stwa.
+Zaprojektowany jest tak, aby w prosty sposÃ³b ukazaÄ‡ znaczenie
+obowiÄ…zkowej kontroli dostÄ™pu dla spoÅ‚ecznoÅ›ci linuksowej. Ukazuje
+rÃ³wnieÅ¼ jak takÄ… kontrolÄ™ moÅ¼na dodaÄ‡ do istniejÄ…cego systemu typu
+Linux. JÄ…dro SELinux zawiera nowe skÅ‚adniki architektury pierwotnie
+opracowane w celu ulepszenia bezpieczeÅ„stwa systemu operacyjnego
+Flask. Te elementy zapewniajÄ… ogÃ³lne wsparcie we wdraÅ¼aniu wielu typÃ³w
+polityk mandatowej kontroli dostÄ™pu, wÅ‚Ä…czajÄ…c te wzorowane na: Type
+Enforcement, kontroli dostÄ™pu opartej na rolach i zabezpieczeniach
 wielopoziomowych.
 
-Ten pakiet zawiera przyk³adow± konfiguracjê polityki dla SELinuksa
+Ten pakiet zawiera przykÅ‚adowÄ… konfiguracjÄ™ polityki dla SELinuksa
 wraz z informacjami o konfiguracji Flask oraz plikami konfiguracyjnymi
 aplikacji.
 
 %package sources
 Summary:	SELinux example policy configuration source files
-Summary(pl):	Pliki ¼ród³owe przyk³adowej konfiguracji polityki SELinuksa
+Summary(pl.UTF-8):   Pliki ÅºrÃ³dÅ‚owe przykÅ‚adowej konfiguracji polityki SELinuksa
 Group:		Base
 Requires:	%{name} = %{version}-%{release}
 Requires:	m4
@@ -70,10 +70,10 @@ This subpackage includes the source files used to build the policy
 configuration. Includes policy.conf and the Makefiles, macros and
 source files for it.
 
-%description sources -l pl
-Ten podpakiet zawiera pliki ¼ród³owe u¿yte do zbudowania konfiguracji
+%description sources -l pl.UTF-8
+Ten podpakiet zawiera pliki ÅºrÃ³dÅ‚owe uÅ¼yte do zbudowania konfiguracji
 polityki. Zawiera policy.conf oraz wszystkie Makefile, makra i pliki
-¼ród³owe.
+ÅºrÃ³dÅ‚owe.
 
 %prep
 %setup -q -n policy-%{version}
